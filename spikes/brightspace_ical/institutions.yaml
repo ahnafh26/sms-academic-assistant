@@ -13,7 +13,7 @@ institutions:
     lms_name: LEARN
     hosts: [learn.uwaterloo.ca]
     timezone: America/Toronto
-    verified: false
+    verified: true   # first real feed 2026-10-04
     rules: {}
 
   laurier:
@@ -21,7 +21,7 @@ institutions:
     lms_name: MyLearningSpace
     hosts: [mylearningspace.wlu.ca]
     timezone: America/Toronto
-    verified: false
+    verified: true   # first real feed 2026-10-04
     rules: {}
 
   tmu:
