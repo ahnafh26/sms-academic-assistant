@@ -1,0 +1,7 @@
+# Phase 0 spike only — not the production dependency set.
+icalendar>=7.0
+httpx>=0.28
+pyyaml>=6.0
+python-dateutil>=2.9
+tzdata>=2025.1   # zoneinfo has no system tz database on Windows
+pytest>=8.0

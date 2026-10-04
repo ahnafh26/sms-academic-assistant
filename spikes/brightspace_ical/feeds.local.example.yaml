@@ -1,0 +1,16 @@
+# Copy this file to feeds.local.yaml (gitignored) and paste your real feed URLs.
+# Feed URLs contain a personal token — treat them like passwords.
+# Never commit feeds.local.yaml and never paste the URL into chat or issues.
+#
+# label:        any short name for this feed (used in snapshot folder names)
+# institution:  a slug from institutions.yaml
+# url:          Brightspace Calendar -> Subscribe -> copy the feed URL
+
+feeds:
+  - label: waterloo-all
+    institution: waterloo
+    url: "https://learn.uwaterloo.ca/d2l/le/calendar/feed/user/feed.ics?token=PASTE_YOUR_TOKEN"
+
+  # - label: laurier-all
+  #   institution: laurier
+  #   url: "https://mylearningspace.wlu.ca/d2l/le/calendar/feed/user/feed.ics?token=PASTE_YOUR_TOKEN"

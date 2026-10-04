@@ -1,0 +1,113 @@
+# Ontario D2L Brightspace institutions for the iCal viability spike.
+#
+# One shared connector + normalizer; schools differ only by config here.
+# hosts:    hostnames a feed URL may point at (subdomains allowed). Fetching any
+#           other host is refused. Add CDN/redirect hosts once observed.
+# verified: true once a real feed from this school has been fetched and inspected.
+# rules:    optional overrides for spike/rules.py defaults (course_code_regex,
+#           course_fields, extra_suffixes, all_day_due_time).
+
+institutions:
+  waterloo:
+    name: University of Waterloo
+    lms_name: LEARN
+    hosts: [learn.uwaterloo.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  laurier:
+    name: Wilfrid Laurier University
+    lms_name: MyLearningSpace
+    hosts: [mylearningspace.wlu.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  tmu:
+    name: Toronto Metropolitan University
+    lms_name: D2L Brightspace
+    hosts: [courses.torontomu.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  mcmaster:
+    name: McMaster University
+    lms_name: Avenue to Learn
+    hosts: [avenue.cllmcmaster.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  queens:
+    name: Queen's University
+    lms_name: onQ
+    hosts: [onq.queensu.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  western:
+    name: Western University
+    lms_name: OWL Brightspace
+    hosts: [westernu.brightspace.com]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  guelph:
+    name: University of Guelph
+    lms_name: CourseLink
+    hosts: [courselink.uoguelph.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  brock:
+    name: Brock University
+    lms_name: Brightspace
+    hosts: [brightspace.brocku.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  carleton:
+    name: Carleton University
+    lms_name: Brightspace
+    hosts: [brightspace.carleton.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  uottawa:
+    name: University of Ottawa
+    lms_name: Brightspace
+    hosts: [uottawa.brightspace.com]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  windsor:
+    name: University of Windsor
+    lms_name: Brightspace
+    hosts: [brightspace.uwindsor.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  lakehead:
+    name: Lakehead University
+    lms_name: myCourseLink
+    hosts: [mycourselink.lakeheadu.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  laurentian:
+    name: Laurentian University
+    lms_name: D2L
+    hosts: [learn.laurentian.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
