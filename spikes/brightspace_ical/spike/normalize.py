@@ -50,6 +50,7 @@ class NormalizedItem:
     source_tool: str | None  # Brightspace tool that created the event (quizzes, dropbox, ...)
     category: str  # deliverable | exam | content | checklist | event | non_course
     lms_event_id: str | None
+    in_term: bool | None  # None when the course label carries no term
     course_detection: str
     type_detection: str
     source_url: str | None
@@ -295,6 +296,9 @@ def _merge(
         warnings.append("recurring_event_not_expanded")
 
     cancelled = any((c.event.status or "").upper() == "CANCELLED" for c in bundle)
+    in_term = _in_course_term(primary.course_label, due_at or start_at or available_at or available_until)
+    if in_term is False:
+        warnings.append("outside_course_term")
     key_uid = primary.event.uid or f"{primary.event.summary}|{primary.event.dtstart and primary.event.dtstart.value}"
 
     return NormalizedItem(
@@ -323,6 +327,7 @@ def _merge(
         source_tool=tool,
         category=category,
         lms_event_id=lms_event_id(primary.event.uid),
+        in_term=in_term,
         course_detection=primary.course_how,
         type_detection=type_how,
         source_url=primary.event.url,
@@ -398,6 +403,26 @@ def _category(org_kind: str, item_type: str, tool: str | None, roles: set[str]) 
     if tool in DELIVERABLE_TOOLS or roles & {"due", "end"}:
         return "deliverable"
     return "event"
+
+
+_TERM_IN_LABEL = re.compile(r"\b(fall|winter|spring|summer)\s*(?:term\s*)?(20\d{2})\b", re.I)
+_TERM_MONTHS = {"winter": (1, 4), "spring": (5, 8), "summer": (5, 8), "fall": (9, 12)}
+TERM_MARGIN_BEFORE = timedelta(days=45)  # pre-term onboarding items
+TERM_MARGIN_AFTER = timedelta(days=21)   # exams / late submissions
+
+
+def _in_course_term(label: str | None, when: datetime | None) -> bool | None:
+    """Courses copied from an old offering can carry stale dates (a real
+    "CS 115 - Fall 2026" feed had 2018 dates). Flag items outside the term
+    named in the course label."""
+    m = _TERM_IN_LABEL.search(label or "")
+    if not m or when is None:
+        return None
+    first, last = _TERM_MONTHS[m.group(1).lower()]
+    year = int(m.group(2))
+    start = datetime(year, first, 1, tzinfo=timezone.utc)
+    end = datetime(year + (last == 12), last % 12 + 1, 1, tzinfo=timezone.utc)
+    return start - TERM_MARGIN_BEFORE <= when < end + TERM_MARGIN_AFTER
 
 
 def classify_type(title: str, rules: Rules) -> tuple[str, str]:

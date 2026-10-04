@@ -218,3 +218,21 @@ def test_categories_separate_deliverables_from_noise():
     assert (by_title["Info Session"].org_kind, by_title["Info Session"].venue) == ("community", "LH1001")
     assert (by_title["Midterm"].type, by_title["Midterm"].category) == ("midterm", "exam")
     assert by_title["Midterm"].lms_event_id == "6"
+
+
+@pytest.mark.parametrize(
+    "label,when,expected",
+    [
+        ("CS 115 - Fall 2026", "2026-10-07T02:00:00", True),
+        ("CS 115 - Fall 2026", "2018-03-20T16:00:00", False),   # stale date copied from an old offering
+        ("CS 115 - Fall 2026", "2026-12-18T19:00:00", True),    # final exam period
+        ("MATH 135 - Fall 2026", "2026-08-10T16:00:00", True),  # pre-term onboarding
+        ("ECON 101 - Winter 2027", "2026-12-01T00:00:00", True),
+        ("ECON 101 - Winter 2027", "2027-06-01T00:00:00", False),
+        ("EC-120-A-B-C - Intro To Microeconomics", "2010-01-01T00:00:00", None),  # no term in label
+    ],
+)
+def test_in_course_term(label, when, expected):
+    from datetime import datetime, timezone
+    from spike.normalize import _in_course_term
+    assert _in_course_term(label, datetime.fromisoformat(when).replace(tzinfo=timezone.utc)) is expected
