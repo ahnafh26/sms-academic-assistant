@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from . import config, fetch, normalize, parse
+from . import config, fetch, inspect_feed, normalize, parse
 from .redact import redact
 
 
@@ -70,6 +70,24 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_inspect(args: argparse.Namespace) -> int:
+    institutions = config.load_institutions()
+    if args.institution not in institutions:
+        raise config.ConfigError(f"unknown institution '{args.institution}'")
+    path = Path(args.ics)
+    report = inspect_feed.build_report(
+        parse.parse_ics(path.read_bytes()), institutions[args.institution], label=path.stem
+    )
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(report, encoding="utf-8")
+        print(f"report -> {args.out}")
+    else:
+        sys.stdout.reconfigure(encoding="utf-8")
+        print(report)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="spike", description="Brightspace iCal viability spike")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -86,6 +104,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--institution", required=True, help="institution slug (rules + timezone)")
     p.add_argument("--out", help="write JSON here instead of stdout")
     p.set_defaults(func=cmd_normalize)
+
+    p = sub.add_parser("inspect", help="markdown report of what an .ics file contains")
+    p.add_argument("ics", help="path to an .ics snapshot")
+    p.add_argument("--institution", required=True, help="institution slug (rules + timezone)")
+    p.add_argument("--out", help="write the report here instead of stdout")
+    p.set_defaults(func=cmd_inspect)
 
     return parser
 
