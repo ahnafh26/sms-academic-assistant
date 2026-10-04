@@ -128,3 +128,39 @@ def test_institution_override_course_regex():
     )
     items = normalize_events(parse_ics(raw).events, inst)
     assert any(i.course_code == "ACCT1220" for i in items)
+
+
+@pytest.mark.parametrize(
+    "location,label,venue",
+    [
+        ("CS 115 - Fall 2026", "CS 115 - Fall 2026", None),
+        ("Zoom link (BU-111-All-Sections - Understanding the Business Environment)",
+         "BU-111-All-Sections - Understanding the Business Environment", "Zoom link"),
+        ("LH1001 (BBA Program Information)", "BBA Program Information", "LH1001"),
+        ("Math Ready Modules (2026)", "Math Ready Modules (2026)", None),
+        ("Ron Eydt Village (Residence Experience)", "Residence Experience", "Ron Eydt Village"),
+    ],
+)
+def test_split_location_real_patterns(location, label, venue):
+    from spike.normalize import split_location
+    assert split_location(location) == (label, venue)
+
+
+def test_room_in_venue_is_not_a_course_code():
+    from spike.normalize import detect_course
+    from spike.parse import RawEvent
+    ev = RawEvent(uid="u", summary="Info session", description=None, location="LH1001 (BBA Program Information)",
+                  categories=[], url=None, dtstart=None, dtend=None, status=None, sequence=None, rrule=None,
+                  last_modified=None)
+    cm = detect_course(ev, build_rules())
+    assert cm.code is None and cm.label == "BBA Program Information" and cm.how == "location:no_code"
+
+
+def test_laurier_section_style_codes():
+    from spike.normalize import detect_course
+    from spike.parse import RawEvent
+    ev = RawEvent(uid="u", summary="Quiz", description=None, location="EC-120-A-B-C - Intro To Microeconomics",
+                  categories=[], url=None, dtstart=None, dtend=None, status=None, sequence=None, rrule=None,
+                  last_modified=None)
+    cm = detect_course(ev, build_rules())
+    assert (cm.code, cm.name) == ("EC120", "Intro To Microeconomics")

@@ -44,6 +44,8 @@ class NormalizedItem:
     raw_event_title: str
     raw_event_uids: list[str]
     org_unit_id: str | None
+    course_label: str | None
+    venue: str | None
     course_detection: str
     type_detection: str
     source_url: str | None
@@ -62,10 +64,21 @@ class _Classified:
     course_name: str | None
     course_how: str
     org_unit: str | None
+    course_label: str | None = None
+    venue: str | None = None
 
     @property
     def course_key(self) -> str:
-        return self.course_code or (f"ou:{self.org_unit}" if self.org_unit else "") or (self.course_name or "")
+        return self.course_code or self.course_label or (f"ou:{self.org_unit}" if self.org_unit else "")
+
+
+@dataclass
+class CourseMatch:
+    code: str | None
+    name: str | None
+    how: str
+    label: str | None = None  # the org unit's display label, e.g. "CS 115 - Fall 2026"
+    venue: str | None = None  # instructor-entered location, e.g. "Zoom link"
 
 
 def normalize_events(events: list[RawEvent], inst: InstitutionConfig) -> list[NormalizedItem]:
@@ -99,27 +112,47 @@ def strip_role(summary: str, rules: Rules) -> tuple[str, str]:
     return title, "plain"
 
 
-def detect_course(ev: RawEvent, rules: Rules) -> tuple[str | None, str | None, str]:
+def split_location(location: str) -> tuple[str, str | None]:
+    """D2L LOCATION is the org unit label, or "<venue> (<label>)" when the
+    instructor typed a location. Returns (label, venue)."""
+    loc = location.strip()
+    m = re.match(r"^(?P<venue>.+?)\s*\((?P<label>[^()]+)\)\s*$", loc)
+    if m:
+        inner = m.group("label").strip()
+        # "(2026)" or "(Fall 2026)" is part of a label, not a wrapped label
+        if len(inner) >= 4 and not re.fullmatch(r"(?:(?:fall|winter|spring|summer)\s*)?[\d\s\-/]+", inner, re.I):
+            return inner, m.group("venue").strip()
+    return loc, None
+
+
+def _find_code(text: str, rules: Rules) -> re.Match | None:
+    for m in rules.course_code.finditer(text):
+        if m.group(1) not in COURSE_CODE_STOPWORDS:
+            return m
+    return None
+
+
+def detect_course(ev: RawEvent, rules: Rules) -> CourseMatch:
+    """LOCATION is authoritative when present (100% of events in real LEARN and
+    MyLearningSpace feeds); other fields are a fallback for feeds without it."""
+    if ev.location and "location" in rules.course_fields:
+        label, venue = split_location(ev.location)
+        m = _find_code(label, rules)
+        if m:
+            return CourseMatch(f"{m.group(1)}{m.group(2)}", _course_name(label, m, rules), "location", label, venue)
+        return CourseMatch(None, label, "location:no_code", label, venue)
     fields = {
-        "location": ev.location,
         "categories": " | ".join(ev.categories) if ev.categories else None,
         "description": ev.description,
         "summary": ev.summary,
     }
     for name in rules.course_fields:
         text = fields.get(name)
-        if not text:
-            continue
-        for m in rules.course_code.finditer(text):
-            subject, number = m.group(1), m.group(2)
-            if subject in COURSE_CODE_STOPWORDS:
-                continue
-            course_name = _course_name(text, m, rules) if name in ("location", "categories") else None
-            return f"{subject}{number}", course_name, name
-    # No code anywhere: a location that isn't just a room is probably the course name.
-    if ev.location and not re.search(r"\broom\b|\bhall\b|\bonline\b", ev.location, re.I):
-        return None, ev.location.strip(), "location:name_only"
-    return None, None, "none"
+        m = _find_code(text, rules) if text else None
+        if m:
+            name_guess = _course_name(text, m, rules) if name == "categories" else None
+            return CourseMatch(f"{m.group(1)}{m.group(2)}", name_guess, f"fallback:{name}")
+    return CourseMatch(None, None, "none")
 
 
 def _course_name(text: str, match: re.Match, rules: Rules) -> str | None:
@@ -144,8 +177,8 @@ def _org_unit(ev: RawEvent, rules: Rules) -> str | None:
 
 def _classify(ev: RawEvent, rules: Rules) -> _Classified:
     base, role = strip_role(ev.summary, rules)
-    code, name, how = detect_course(ev, rules)
-    return _Classified(ev, role, base or ev.summary, code, name, how, _org_unit(ev, rules))
+    cm = detect_course(ev, rules)
+    return _Classified(ev, role, base or ev.summary, cm.code, cm.name, cm.how, _org_unit(ev, rules), cm.label, cm.venue)
 
 
 def _backfill_course_codes(items: list[_Classified]) -> None:
@@ -274,6 +307,8 @@ def _merge(
         raw_event_title=primary.event.summary,
         raw_event_uids=uids,
         org_unit_id=primary.org_unit,
+        course_label=primary.course_label,
+        venue=primary.venue,
         course_detection=primary.course_how,
         type_detection=type_how,
         source_url=primary.event.url,

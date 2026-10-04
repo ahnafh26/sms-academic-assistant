@@ -34,4 +34,4 @@ def test_registry_loads_all_schools():
 )
 def test_course_code_formats_per_school(school, location, code):
     rules = build_rules(load_institutions()[school].rules)
-    assert detect_course(_event(location), rules)[0] == code
+    assert detect_course(_event(location), rules).code == code
