@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
-from . import config
+from . import config, fetch
+from .redact import redact
 
 
 def cmd_list(args: argparse.Namespace) -> int:
@@ -25,12 +27,41 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def _selected_feeds(label: str | None) -> tuple[dict, list[config.FeedConfig]]:
+    institutions = config.load_institutions()
+    feeds = config.load_feeds(institutions=institutions)
+    if label:
+        feeds = [f for f in feeds if f.label == label]
+        if not feeds:
+            raise config.ConfigError(f"no feed labelled '{label}' in feeds.local.yaml")
+    return institutions, feeds
+
+
+def cmd_fetch(args: argparse.Namespace) -> int:
+    institutions, feeds = _selected_feeds(args.label)
+    failures = 0
+    for feed in feeds:
+        try:
+            body = fetch.fetch_feed(feed, institutions[feed.institution])
+        except fetch.FetchError as exc:
+            failures += 1
+            print(f"  FAIL {feed.label}: {exc}")
+            continue
+        path = fetch.save_snapshot(feed, body)
+        print(f"  ok   {feed.label}: {len(body):,} bytes -> {path.relative_to(config.SPIKE_DIR)}")
+    return 1 if failures else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="spike", description="Brightspace iCal viability spike")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("list", help="show institutions and configured feeds")
     p.set_defaults(func=cmd_list)
+
+    p = sub.add_parser("fetch", help="download configured feeds into data/raw/")
+    p.add_argument("--label", help="only this feed label")
+    p.set_defaults(func=cmd_fetch)
 
     return parser
 
@@ -40,8 +71,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return args.func(args)
     except config.ConfigError as exc:
-        print(f"config error: {exc}", file=sys.stderr)
+        print(f"config error: {redact(exc)}", file=sys.stderr)
         return 2
+    except Exception as exc:  # never let a traceback print a feed URL
+        if os.environ.get("SPIKE_DEBUG"):
+            raise
+        print(f"error: {type(exc).__name__}: {redact(exc)}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
