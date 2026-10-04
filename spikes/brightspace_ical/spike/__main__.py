@@ -145,6 +145,19 @@ def cmd_anonymize(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_run_all(args: argparse.Namespace) -> int:
+    from .pipeline import run_all
+
+    results = run_all(args.label, offline=args.offline)
+    if not results:
+        print("no feeds configured")
+        return 1
+    for r in results:
+        print(f"  {'ok  ' if r.ok else 'FAIL'} {r.feed.label}: {redact(r.message)}")
+    print(f"\noutputs: {config.OUT_DIR.relative_to(config.SPIKE_DIR)}/  reports: {config.REPORTS_DIR.relative_to(config.SPIKE_DIR)}/")
+    return 0 if all(r.ok for r in results) else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="spike", description="Brightspace iCal viability spike")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -181,6 +194,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--institution", required=True, help="institution slug (course-code format)")
     p.add_argument("--out", required=True, help="e.g. tests/fixtures/real_waterloo_01.ics")
     p.set_defaults(func=cmd_anonymize)
+
+    p = sub.add_parser("run-all", help="fetch + normalize + report + diff every configured feed")
+    p.add_argument("--label", help="only this feed label")
+    p.add_argument("--offline", action="store_true", help="reprocess the latest saved snapshot, no network")
+    p.set_defaults(func=cmd_run_all)
 
     return parser
 
