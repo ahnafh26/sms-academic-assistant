@@ -45,13 +45,22 @@ Use `--offline` to re-run the latest saved snapshots after changing rules, witho
 
 ## Daily snapshots (about 2 weeks)
 
-UID stability, deadline changes and deletions only show up over time. Run `run-all` once or twice a day. On Windows, run this once to schedule it:
+UID stability, deadline changes and deletions only show up over time, so `run-all` runs daily as a Windows scheduled task:
 
-```bat
-schtasks /Create /SC DAILY /ST 09:00 /TN "BrightspaceSpike" /TR "\"%CD%\run_daily.bat\""
+```powershell
+powershell -ExecutionPolicy Bypass -File schedule_task.ps1             # register: 9:00 AM daily
+powershell -ExecutionPolicy Bypass -File schedule_task.ps1 -At 8:30am  # change the time
+powershell -ExecutionPolicy Bypass -File schedule_task.ps1 -Remove     # unregister
+Start-ScheduledTask -TaskName BrightspaceSpike                         # run it now
 ```
 
-Run it from `spikes\brightspace_ical`. Logs go to `data\run_log.txt`. Remove the schedule with `schtasks /Delete /TN "BrightspaceSpike"`.
+The task runs `run_daily.bat` as you, only while you're logged in. If the PC is off or asleep at 9 AM, it runs at the next opportunity. A console window flashes briefly when it runs. The log is in `data\run_log.txt`.
+
+**Every run rewrites `data/reports/ANALYSIS.md`**, which analyzes the whole snapshot history:
+- verdicts for Q10 (UIDs stable), Q11 (edits keep UID), Q14 (past items stay) and Q15 (deletions disappear)
+- per-course coverage, including courses that publish no upcoming deadlines
+- a checklist of the next 21 days of deadlines, to compare against Brightspace and the course outlines
+- a dated log of every change detected
 
 ## Controlled experiments
 
