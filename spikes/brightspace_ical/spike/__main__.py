@@ -121,6 +121,30 @@ def cmd_diff(args: argparse.Namespace) -> int:
     return 0
 
 
+def _anon_salt() -> str:
+    """One random salt per machine (kept in gitignored data/) so mappings line up across snapshots."""
+    path = config.DATA_DIR / "anon_salt.txt"
+    if not path.exists():
+        import secrets as _secrets
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_secrets.token_hex(16), encoding="utf-8")
+    return path.read_text(encoding="utf-8").strip()
+
+
+def cmd_anonymize(args: argparse.Namespace) -> int:
+    from .anonymize import anonymize_ics
+    from .rules import build_rules
+
+    institutions = config.load_institutions()
+    rules = build_rules(institutions[args.institution].rules)
+    out = anonymize_ics(Path(args.ics).read_bytes(), salt=_anon_salt(), rules=rules)
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.out).write_bytes(out)
+    print(f"anonymized -> {args.out}  (REVIEW IT BY HAND before committing)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="spike", description="Brightspace iCal viability spike")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -151,6 +175,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--label", help="diff the two latest snapshots of this feed instead")
     p.add_argument("--out", help="write the report here instead of stdout")
     p.set_defaults(func=cmd_diff)
+
+    p = sub.add_parser("anonymize", help="make a commit-safe fixture from a real snapshot")
+    p.add_argument("ics", help="real .ics snapshot")
+    p.add_argument("--institution", required=True, help="institution slug (course-code format)")
+    p.add_argument("--out", required=True, help="e.g. tests/fixtures/real_waterloo_01.ics")
+    p.set_defaults(func=cmd_anonymize)
 
     return parser
 
