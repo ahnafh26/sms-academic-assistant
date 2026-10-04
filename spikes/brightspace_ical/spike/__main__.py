@@ -157,6 +157,7 @@ def cmd_run_all(args: argparse.Namespace) -> int:
     for r in results:
         print(f"  {'ok  ' if r.ok else 'FAIL'} {r.feed.label}: {redact(r.message)}")
     print(f"\noutputs: {config.OUT_DIR.relative_to(config.SPIKE_DIR)}/  reports: {config.REPORTS_DIR.relative_to(config.SPIKE_DIR)}/")
+    print(f"analysis: {(config.REPORTS_DIR / 'ANALYSIS.md').relative_to(config.SPIKE_DIR)}  (viability answers + deadlines to check)")
     return 0 if all(r.ok for r in results) else 1
 
 

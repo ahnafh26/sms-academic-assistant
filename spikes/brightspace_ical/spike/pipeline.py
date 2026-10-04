@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import config, diff, fetch, inspect_feed, normalize, parse
+from . import analyze, config, diff, fetch, inspect_feed, normalize, parse
 from .config import FeedConfig, InstitutionConfig
 
 
@@ -72,7 +72,19 @@ def run_all(label: str | None = None, *, offline: bool = False) -> list[FeedResu
     results = [process_feed(f, institutions[f.institution], offline=offline) for f in feeds]
     all_items = [i for r in results for i in r.items]
     _write_json(config.OUT_DIR / "all_items.json", all_items)
+    write_analysis(feeds, institutions)
     return results
+
+
+def write_analysis(feeds: list[FeedConfig], institutions: dict[str, InstitutionConfig]) -> list[analyze.FeedAnalysis]:
+    """Re-analyze every snapshot of every feed -> data/reports/ANALYSIS.md."""
+    analyses = [
+        analyze.analyze_feed(f, institutions[f.institution], analyze.load_history(f, institutions[f.institution]))
+        for f in feeds
+    ]
+    config.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    (config.REPORTS_DIR / "ANALYSIS.md").write_text(analyze.render(analyses), encoding="utf-8")
+    return analyses
 
 
 def _write_json(path: Path, items: list[normalize.NormalizedItem]) -> None:
