@@ -38,7 +38,9 @@ institutions:
     hosts: [avenue.cllmcmaster.ca]
     timezone: America/Toronto
     verified: false
-    rules: {}
+    rules:
+      # McMaster codes: long subject + level-letter-digit number, e.g. COMPSCI 1MD3, MATH 1ZA3
+      course_code_regex: '\b([A-Z]{2,8})\s?(\d[A-Z0-9]{2,3})\b'
 
   queens:
     name: Queen's University
@@ -62,7 +64,9 @@ institutions:
     hosts: [courselink.uoguelph.ca]
     timezone: America/Toronto
     verified: false
-    rules: {}
+    rules:
+      # Guelph codes use an asterisk, e.g. CIS*1300, ACCT*1220
+      course_code_regex: '\b([A-Z]{2,5})\*(\d{4})\b'
 
   brock:
     name: Brock University
