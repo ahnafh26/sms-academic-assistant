@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
+from pathlib import Path
 
-from . import config, fetch
+from . import config, fetch, normalize, parse
 from .redact import redact
 
 
@@ -52,6 +54,22 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
+def cmd_normalize(args: argparse.Namespace) -> int:
+    institutions = config.load_institutions()
+    if args.institution not in institutions:
+        raise config.ConfigError(f"unknown institution '{args.institution}'")
+    feed = parse.parse_ics(Path(args.ics).read_bytes())
+    items = normalize.normalize_events(feed.events, institutions[args.institution])
+    payload = json.dumps([i.to_dict() for i in items], indent=2, ensure_ascii=False)
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(payload, encoding="utf-8")
+        print(f"{len(feed.events)} events -> {len(items)} items -> {args.out}")
+    else:
+        print(redact(payload))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="spike", description="Brightspace iCal viability spike")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -62,6 +80,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("fetch", help="download configured feeds into data/raw/")
     p.add_argument("--label", help="only this feed label")
     p.set_defaults(func=cmd_fetch)
+
+    p = sub.add_parser("normalize", help="normalize one .ics file to JSON")
+    p.add_argument("ics", help="path to an .ics snapshot")
+    p.add_argument("--institution", required=True, help="institution slug (rules + timezone)")
+    p.add_argument("--out", help="write JSON here instead of stdout")
+    p.set_defaults(func=cmd_normalize)
 
     return parser
 

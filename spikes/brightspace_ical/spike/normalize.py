@@ -1,0 +1,323 @@
+"""RawEvent[] -> NormalizedItem[]: the shape the product's database will store.
+
+Pipeline (pure, no I/O):
+1. classify each event's role from its title suffix (due/start/end/plain)
+2. detect its course (code + name) and an org-unit fallback key
+3. group events of the same activity: (course key, base title)
+4. merge each group into one item, resolving times to UTC
+5. classify item type, assign external_source_id + fingerprint
+"""
+
+from __future__ import annotations
+
+import hashlib
+import re
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+from .config import InstitutionConfig
+from .parse import RawEvent
+from .rules import COURSE_CODE_STOPWORDS, Rules, build_rules
+
+SOURCE = "brightspace_calendar"
+
+
+@dataclass
+class NormalizedItem:
+    institution: str
+    course_code: str | None
+    course_name: str | None
+    title: str
+    type: str
+    due_at: str | None
+    due_at_local: str | None
+    start_at: str | None
+    end_at: str | None
+    available_at: str | None
+    available_until: str | None
+    all_day: bool
+    cancelled: bool
+    source: str
+    external_source_id: str
+    fingerprint: str
+    raw_event_title: str
+    raw_event_uids: list[str]
+    org_unit_id: str | None
+    course_detection: str
+    type_detection: str
+    source_url: str | None
+    warnings: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class _Classified:
+    event: RawEvent
+    role: str  # due | start | end | plain
+    base_title: str
+    course_code: str | None
+    course_name: str | None
+    course_how: str
+    org_unit: str | None
+
+    @property
+    def course_key(self) -> str:
+        return self.course_code or (f"ou:{self.org_unit}" if self.org_unit else "") or (self.course_name or "")
+
+
+def normalize_events(events: list[RawEvent], inst: InstitutionConfig) -> list[NormalizedItem]:
+    rules = build_rules(inst.rules)
+    tz = ZoneInfo(inst.timezone)
+    classified = [_classify(ev, rules) for ev in events]
+    _backfill_course_codes(classified)
+
+    groups: dict[tuple[str, str], list[_Classified]] = {}
+    for c in classified:
+        groups.setdefault((c.course_key, _norm(c.base_title)), []).append(c)
+
+    items: list[NormalizedItem] = []
+    for (course_key, base_norm), members in groups.items():
+        for ordinal, bundle in enumerate(_split_bundles(members, tz)):
+            items.append(_merge(bundle, inst, rules, tz, course_key, base_norm, ordinal))
+    items.sort(key=lambda i: (i.due_at or i.start_at or i.available_at or "9999", i.course_code or "", i.title))
+    return items
+
+
+# ---------------------------------------------------------------- classify
+
+def strip_role(summary: str, rules: Rules) -> tuple[str, str]:
+    title = summary.strip()
+    for pattern, role in rules.prefixes:
+        if pattern.search(title):
+            return pattern.sub("", title).strip(), role
+    for pattern, role in rules.suffixes:
+        if pattern.search(title):
+            return pattern.sub("", title).strip(), role
+    return title, "plain"
+
+
+def detect_course(ev: RawEvent, rules: Rules) -> tuple[str | None, str | None, str]:
+    fields = {
+        "location": ev.location,
+        "categories": " | ".join(ev.categories) if ev.categories else None,
+        "description": ev.description,
+        "summary": ev.summary,
+    }
+    for name in rules.course_fields:
+        text = fields.get(name)
+        if not text:
+            continue
+        for m in rules.course_code.finditer(text):
+            subject, number = m.group(1), m.group(2)
+            if subject in COURSE_CODE_STOPWORDS:
+                continue
+            course_name = _course_name(text, m, rules) if name in ("location", "categories") else None
+            return f"{subject}{number}", course_name, name
+    # No code anywhere: a location that isn't just a room is probably the course name.
+    if ev.location and not re.search(r"\broom\b|\bhall\b|\bonline\b", ev.location, re.I):
+        return None, ev.location.strip(), "location:name_only"
+    return None, None, "none"
+
+
+def _course_name(text: str, match: re.Match, rules: Rules) -> str | None:
+    rest = text[: match.start()] + " " + text[match.end():]
+    rest = rules.term.sub(" ", rest)
+    rest = re.sub(r"\(\s*\)|\[\s*\]", " ", rest)
+    parts = [p.strip(" -–—:|,") for p in re.split(r"\s[-–—|:]\s|\|", rest)]
+    parts = [p for p in parts if len(p) > 2 and not re.fullmatch(r"[\d\s\-_/]+|(?:sec(?:tion)?|lec|tut|lab)\s*\w+", p, re.I)]
+    return max(parts, key=len) if parts else None
+
+
+def _org_unit(ev: RawEvent, rules: Rules) -> str | None:
+    for text in (ev.url, ev.description):
+        if not text:
+            continue
+        for pattern in rules.org_unit:
+            m = pattern.search(text)
+            if m:
+                return m.group(1)
+    return None
+
+
+def _classify(ev: RawEvent, rules: Rules) -> _Classified:
+    base, role = strip_role(ev.summary, rules)
+    code, name, how = detect_course(ev, rules)
+    return _Classified(ev, role, base or ev.summary, code, name, how, _org_unit(ev, rules))
+
+
+def _backfill_course_codes(items: list[_Classified]) -> None:
+    """If events of an org unit carry exactly one course code, lend it to the others.
+
+    Only unambiguous org units qualify: a global-calendar URL may carry the
+    root org unit for every course, which must not collapse courses together.
+    """
+    codes_by_ou: dict[str, dict[str, str | None]] = {}
+    for c in items:
+        if c.org_unit and c.course_code:
+            codes_by_ou.setdefault(c.org_unit, {}).setdefault(c.course_code, c.course_name)
+    for c in items:
+        codes = codes_by_ou.get(c.org_unit or "")
+        if c.org_unit and not c.course_code and codes and len(codes) == 1:
+            (code, name), = codes.items()
+            c.course_code, c.course_name = code, c.course_name or name
+            c.course_how = "org_unit_backfill"
+
+
+# ---------------------------------------------------------------- group/merge
+
+def _anchor(c: _Classified, tz) -> datetime:
+    t = c.event.dtstart or c.event.dtend
+    if t is None:
+        return datetime.max.replace(tzinfo=timezone.utc)
+    utc = t.to_utc(tz)
+    if utc is None:  # all-day
+        return datetime.combine(t.value, time(12), tz).astimezone(timezone.utc)
+    return utc
+
+
+def _split_bundles(members: list[_Classified], tz) -> list[list[_Classified]]:
+    """Same course+title can hide several activities (e.g. weekly 'Reflection - Due').
+
+    One bundle per due (or plain) event; start/end events attach to the earliest
+    due at/after them, else the latest one.
+    """
+    anchors = sorted((c for c in members if c.role in ("due", "plain")), key=lambda c: _anchor(c, tz))
+    if len(anchors) <= 1:
+        return [members]
+    bundles = [[a] for a in anchors]
+    for c in members:
+        if c.role in ("due", "plain"):
+            continue
+        t = _anchor(c, tz)
+        idx = next((i for i, a in enumerate(anchors) if _anchor(a, tz) >= t), len(anchors) - 1)
+        bundles[idx].append(c)
+    return bundles
+
+
+def _merge(
+    bundle: list[_Classified],
+    inst: InstitutionConfig,
+    rules: Rules,
+    tz: ZoneInfo,
+    course_key: str,
+    base_norm: str,
+    ordinal: int,
+) -> NormalizedItem:
+    warnings: list[str] = []
+    by_role: dict[str, list[_Classified]] = {}
+    for c in bundle:
+        by_role.setdefault(c.role, []).append(c)
+    for role, cs in by_role.items():
+        if len(cs) > 1:
+            warnings.append(f"multiple_{role}_events")
+
+    due_at = start_at = end_at = available_at = available_until = None
+    all_day = False
+
+    if "due" in by_role:
+        due_at, all_day = _point(by_role["due"][0], rules, tz, warnings)
+    if "start" in by_role:
+        available_at, _ = _point(by_role["start"][0], rules, tz, warnings)
+    if "end" in by_role:
+        available_until, _ = _point(by_role["end"][0], rules, tz, warnings)
+    if "plain" in by_role:
+        ev = by_role["plain"][0].event
+        s = ev.dtstart.to_utc(tz) if ev.dtstart else None
+        e = ev.dtend.to_utc(tz) if ev.dtend else None
+        if ev.dtstart and ev.dtstart.kind == "date":
+            all_day = True
+            start_at = datetime.combine(ev.dtstart.value, time(0), tz).astimezone(timezone.utc)
+        elif s and e and e - s >= timedelta(minutes=1):
+            start_at, end_at = s, e  # scheduled block (exam sitting, lecture, ...)
+        elif s:
+            due_at = due_at or s
+    if due_at is None and available_until is not None and start_at is None:
+        due_at = available_until
+        warnings.append("due_from_availability_end")
+
+    primary = (by_role.get("due") or by_role.get("plain") or by_role.get("end") or by_role.get("start"))[0]
+    item_type, type_how = classify_type(primary.base_title, rules)
+    if start_at and not due_at and item_type in ("assignment", "other"):
+        warnings.append("scheduled_block_without_due")
+
+    uids = sorted({c.event.uid for c in bundle if c.event.uid})
+    if not uids:
+        warnings.append("missing_uid")
+    if not primary.course_code:
+        warnings.append("no_course_code")
+    if any(c.event.rrule for c in bundle):
+        warnings.append("recurring_event_not_expanded")
+
+    cancelled = any((c.event.status or "").upper() == "CANCELLED" for c in bundle)
+    key_uid = primary.event.uid or f"{primary.event.summary}|{primary.event.dtstart and primary.event.dtstart.value}"
+
+    return NormalizedItem(
+        institution=inst.slug,
+        course_code=primary.course_code,
+        course_name=primary.course_name,
+        title=primary.base_title,
+        type=item_type,
+        due_at=_iso(due_at),
+        due_at_local=_iso(due_at.astimezone(tz)) if due_at else None,
+        start_at=_iso(start_at),
+        end_at=_iso(end_at),
+        available_at=_iso(available_at),
+        available_until=_iso(available_until),
+        all_day=all_day,
+        cancelled=cancelled,
+        source=SOURCE,
+        external_source_id=_hash(inst.slug, key_uid),
+        fingerprint=_hash(inst.slug, course_key, base_norm, str(ordinal)),
+        raw_event_title=primary.event.summary,
+        raw_event_uids=uids,
+        org_unit_id=primary.org_unit,
+        course_detection=primary.course_how,
+        type_detection=type_how,
+        source_url=primary.event.url,
+        warnings=warnings,
+    )
+
+
+def _point(c: _Classified, rules: Rules, tz, warnings: list[str]) -> tuple[datetime | None, bool]:
+    """Instant for a due/start/end marker event."""
+    ev = c.event
+    t = ev.dtstart or ev.dtend
+    if t is None:
+        warnings.append(f"{c.role}_event_without_time")
+        return None, False
+    if t.kind == "date":
+        hh, mm = (int(x) for x in rules.all_day_due_time.split(":"))
+        return datetime.combine(t.value, time(hh, mm), tz).astimezone(timezone.utc), True
+    start = t.to_utc(tz)
+    if ev.dtstart and ev.dtend and ev.dtend.kind != "date":
+        end = ev.dtend.to_utc(tz)
+        if end and start and abs(end - start) > timedelta(minutes=1):
+            warnings.append(f"{c.role}_event_has_duration")
+    return start, False
+
+
+def classify_type(title: str, rules: Rules) -> tuple[str, str]:
+    for item_type, pattern in rules.type_rules:
+        m = pattern.search(title)
+        if m:
+            return item_type, f"keyword:{m.group(0).lower()}"
+    return "other", "default"
+
+
+# ---------------------------------------------------------------- helpers
+
+def _norm(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip().casefold()
+
+
+def _hash(*parts: str) -> str:
+    return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()[:24]
+
+
+def _iso(dt: datetime | None) -> str | None:
+    if dt is None:
+        return None
+    return dt.isoformat().replace("+00:00", "Z")
