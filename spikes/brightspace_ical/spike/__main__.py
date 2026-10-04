@@ -137,8 +137,10 @@ def cmd_anonymize(args: argparse.Namespace) -> int:
     from .rules import build_rules
 
     institutions = config.load_institutions()
-    rules = build_rules(institutions[args.institution].rules)
-    out = anonymize_ics(Path(args.ics).read_bytes(), salt=_anon_salt(), rules=rules)
+    inst = institutions[args.institution]
+    out = anonymize_ics(
+        Path(args.ics).read_bytes(), salt=_anon_salt(), rules=build_rules(inst.rules), institution_name=inst.name
+    )
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_bytes(out)
     print(f"anonymized -> {args.out}  (REVIEW IT BY HAND before committing)")

@@ -45,3 +45,35 @@ def test_uids_keep_shape_and_stay_consistent_across_snapshots():
     b = {e.uid for e in parse_ics(anonymize_ics(later, salt="s1")).events}
     assert all(u.endswith("@synthetic.d2l") for u in a)
     assert len(a & b) == 7  # same UIDs that survived in the real diff
+
+
+def _cal(*events: str) -> bytes:
+    return ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" + "".join(events) + "END:VCALENDAR\r\n").encode()
+
+
+def _ev(uid, summary, location, description=None):
+    desc = f"DESCRIPTION:{description}\r\n" if description else ""
+    return (f"BEGIN:VEVENT\r\nUID:{uid}\r\nSUMMARY:{summary}\r\nLOCATION:{location}\r\n{desc}"
+            "DTSTART:20261020T030000Z\r\nDTEND:20261020T030000Z\r\nEND:VEVENT\r\n")
+
+
+def test_venue_form_keeps_parentheses_and_consistent_course_name():
+    label = "BU-111-All-Sections - Understanding the Business Environment"
+    raw = _cal(_ev("6605-1@h", "Task - Due", label), _ev("6605-2@h", "Lecture", f"Zoom link ({label})"))
+    locs = [e.location for e in parse_ics(anonymize_ics(raw, salt="s")).events]
+    assert locs[1] == f"Venue 1 ({locs[0]})"
+    assert "Understanding" not in "".join(locs) and "Zoom" not in "".join(locs)
+
+
+def test_community_titles_scrubbed_but_institution_and_course_titles_kept():
+    raw = _cal(
+        _ev("6606-1@h", "FYEM: Complete 1:1 Don/Resident Tracker - Due", "Residence Experience"),
+        _ev("6606-2@h", "Monthly Maintenance Window", "University of Waterloo"),
+        _ev("6606-3@h", "Complete Quiz 1 - Due", "CS 115 - Fall 2026", "Quizzes: Complete Quiz 1 - https://x"),
+    )
+    evs = parse_ics(anonymize_ics(raw, salt="s", institution_name="University of Waterloo")).events
+    assert evs[0].summary == "Community event 1 - Due"
+    assert evs[1].summary == "Monthly Maintenance Window"
+    assert evs[1].location == "University of Waterloo"
+    assert evs[2].summary == "Complete Quiz 1 - Due"
+    assert evs[2].description.startswith("Quizzes: [description removed")
