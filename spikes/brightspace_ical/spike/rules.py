@@ -25,10 +25,16 @@ DEFAULT_PREFIXES: list[tuple[str, str]] = [
 
 # Ordered: first match wins ("Midterm Exam" must be midterm, not exam).
 DEFAULT_TYPE_RULES: list[tuple[str, str]] = [
+    # Admin/support pages that carry a due date but aren't work to submit
+    # (real: "Semi-final and finals conflict form", "Presentation rubric",
+    # "Assignment Overview and Individual Write-up Instructions").
+    ("other", r"\bforms?\b|\brubrics?\b|\binstructions?\b|\boverview\b"),
+    ("assignment", r"\bpeer\s+evaluations?\b"),
     ("midterm", r"\bmid-?\s?terms?\b"),
     ("exam", r"\bfinal\s+exam\b|\bexam(?:ination)?s?\b|\bfinal\b"),
-    ("quiz", r"\bquiz(?:zes)?\b|\btest\b"),
-    ("lab", r"\blab(?:oratory)?s?\b"),
+    ("quiz", r"\bquiz(?:zes)?\b|\btest\b|\bknowledge\s+checks?\b"),
+    # "LABS 1-33" names lab *sections*, not a lab deliverable
+    ("lab", r"\blab(?:oratory)?s?\b(?!\s*\d+\s*[-–]\s*\d+)"),
     ("discussion", r"\bdiscussion\b|\bforum\b"),
     ("presentation", r"\bpresentations?\b"),
     ("reading", r"\breadings?\b"),
@@ -36,7 +42,10 @@ DEFAULT_TYPE_RULES: list[tuple[str, str]] = [
     (
         "assignment",
         r"\bassignments?\b|\bhomework\b|\bhw\s?\d+\b|\ba\d{1,2}\b|\bproblem\s+sets?\b|\bwebwork\b"
-        r"|\bprojects?\b|\breports?\b|\bessays?\b|\bdropbox\b|\bsubmission\b|\breflections?\b",
+        r"|\bprojects?\b|\breports?\b|\bessays?\b|\bdropbox\b|\bsubmission\b|\breflections?\b"
+        # publisher / courseware homework seen in real feeds (Macmillan Achieve etc.)
+        r"|\bproblems?\b|\bexercises?\b|\blearningcurve\b|\bdecision\s+point\b|\bpodcast\b"
+        r"|\bcase\b|\bwrite-?up\b|\bsimulations?\b|\bslidedocs?\b",
     ),
 ]
 

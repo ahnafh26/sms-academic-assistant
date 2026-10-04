@@ -112,6 +112,19 @@ def test_strip_role(summary, base, role):
         ("Week 3 Discussion", "discussion"),
         ("Group Presentation", "presentation"),
         ("Office Hours", "other"),
+        # titles from the real Waterloo/Laurier feeds
+        ("Ch. 5 Decision Point: Elasticity", "assignment"),
+        ("Ch. 1 EOC Problems: The Four Core Principles of Economics", "assignment"),
+        ("Ch. 10 LearningCurve: Externalities and Public Goods", "assignment"),
+        ("Live Case Individual Report", "assignment"),
+        ("Bonus: Going Global Simulation", "assignment"),
+        ("CIIP Slidedocs - LABS 1-33", "assignment"),
+        ("Complete peer evaluations after presentation", "assignment"),
+        ("Semi-final and finals conflict form - DEADLINE NOV.1, 2026", "other"),
+        ("Presentation rubric", "other"),
+        ("Assignment Overview and Individual Write-up Instructions", "other"),
+        ("Math Ready Knowledge Check", "quiz"),
+        ("Bonus Quiz 1: An Introduction to Integrity", "quiz"),
     ],
 )
 def test_classify_type(title, expected):
