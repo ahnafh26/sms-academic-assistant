@@ -249,3 +249,15 @@ def test_in_course_term(label, when, expected):
     from datetime import datetime, timezone
     from spike.normalize import _in_course_term
     assert _in_course_term(label, datetime.fromisoformat(when).replace(tzinfo=timezone.utc)) is expected
+
+
+def test_old_date_in_termless_course_flagged_as_outlier():
+    inst = InstitutionConfig(slug="laurier", name="Wilfrid Laurier University", lms_name="MyLS",
+                             hosts=("x",), timezone="America/Toronto")
+    loc = "BU-111-All-Sections - Understanding the Business Environment"
+    current = [_vevent(f"6605-{n}@h", f"Task {n} - Due", loc, start=f"202610{10 + n}T035900Z") for n in range(6)]
+    stale = _vevent("6605-99@h", "Midterm", f"See midterm information sheet ({loc})", start="20241004T223000Z")
+    items = normalize_events(parse_ics(_ics(*current, stale)).events, inst)
+    midterm = next(i for i in items if i.title == "Midterm")
+    assert midterm.in_term is False and "date_far_from_course_median" in midterm.warnings
+    assert all(i.in_term is None for i in items if i.title != "Midterm")

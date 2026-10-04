@@ -100,8 +100,34 @@ def normalize_events(events: list[RawEvent], inst: InstitutionConfig) -> list[No
     for (course_key, base_norm), members in groups.items():
         for ordinal, bundle in enumerate(_split_bundles(members, tz)):
             items.append(_merge(bundle, inst, rules, tz, course_key, base_norm, ordinal))
+    _flag_course_date_outliers(items)
     items.sort(key=lambda i: (i.due_at or i.start_at or i.available_at or "9999", i.course_code or "", i.title))
     return items
+
+
+COURSE_OUTLIER_DAYS = 200
+
+
+def _flag_course_date_outliers(items: list[NormalizedItem]) -> None:
+    """Fallback stale-date check for labels without a term (e.g. Laurier's
+    "BU-111-All-Sections - ..."): a real feed had a 2024 "Midterm" inside a
+    course whose other items were all in fall 2026. Items far from the
+    course's median date are marked out of term."""
+    by_course: dict[str, list[tuple[NormalizedItem, datetime]]] = {}
+    for item in items:
+        anchor = item.due_at or item.start_at or item.available_at or item.available_until
+        if item.org_kind == "course" and item.in_term is None and anchor:
+            key = item.course_code or item.course_label or ""
+            by_course.setdefault(key, []).append((item, datetime.fromisoformat(anchor.replace("Z", "+00:00"))))
+    for members in by_course.values():
+        if len(members) < 5:
+            continue
+        dates = sorted(d for _, d in members)
+        median = dates[len(dates) // 2]
+        for item, when in members:
+            if abs(when - median) > timedelta(days=COURSE_OUTLIER_DAYS):
+                item.in_term = False
+                item.warnings.append("date_far_from_course_median")
 
 
 # ---------------------------------------------------------------- classify
