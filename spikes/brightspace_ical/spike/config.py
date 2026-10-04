@@ -8,6 +8,8 @@ from typing import Any
 
 import yaml
 
+from . import redact
+
 SPIKE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = SPIKE_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
@@ -79,6 +81,8 @@ def load_feeds(
         for feed in feeds:
             if feed.institution not in institutions:
                 raise ConfigError(f"feed '{feed.label}': unknown institution '{feed.institution}'")
+    for feed in feeds:
+        redact.register_url(feed.url)
     labels = [f.label for f in feeds]
     if len(labels) != len(set(labels)):
         raise ConfigError("feed labels must be unique")
