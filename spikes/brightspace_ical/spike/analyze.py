@@ -134,8 +134,12 @@ def answers(a: FeedAnalysis) -> dict[str, str]:
 
     # Q14: past items remain
     now = a.latest.taken_at
-    past_present = [i for i in a.latest.items if i.org_kind == "course" and (_iso(i.due_at) or now) < now]
-    out["Q14"] = (f"✅ yes — {len(past_present)} past-due course items still in the latest feed "
+    # only this term's items: stale copied-course dates would inflate the count
+    past_present = [
+        i for i in a.latest.items
+        if i.org_kind == "course" and i.in_term is not False and (_iso(i.due_at) or now) < now
+    ]
+    out["Q14"] = (f"✅ yes — {len(past_present)} past-due current-term course items still in the latest feed "
                   "(no submission/completion status is exposed)") if past_present else "❓ no past-due items to judge"
 
     # Q15: deletions
