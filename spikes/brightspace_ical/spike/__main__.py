@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from . import config, fetch, inspect_feed, normalize, parse
+from . import config, diff, fetch, inspect_feed, normalize, parse
 from .redact import redact
 
 
@@ -88,6 +88,39 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_diff(args: argparse.Namespace) -> int:
+    institutions = config.load_institutions()
+    if args.label:
+        _, (feed,) = _selected_feeds(args.label)
+        snapshots = fetch.list_snapshots(feed)
+        if len(snapshots) < 2:
+            raise config.ConfigError(f"need at least 2 snapshots for '{args.label}', found {len(snapshots)}")
+        old_path, new_path = snapshots[-2], snapshots[-1]
+        inst = institutions[feed.institution]
+    else:
+        if not (args.old and args.new and args.institution):
+            raise config.ConfigError("use --label L, or OLD.ics NEW.ics --institution X")
+        old_path, new_path = Path(args.old), Path(args.new)
+        inst = institutions[args.institution]
+
+    old_events = parse.parse_ics(old_path.read_bytes()).events
+    new_events = parse.parse_ics(new_path.read_bytes()).events
+    report = diff.render_markdown(
+        diff.diff_events(old_events, new_events),
+        diff.diff_items(normalize.normalize_events(old_events, inst), normalize.normalize_events(new_events, inst)),
+        old_label=old_path.stem,
+        new_label=new_path.stem,
+    )
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(report, encoding="utf-8")
+        print(f"diff -> {args.out}")
+    else:
+        sys.stdout.reconfigure(encoding="utf-8")
+        print(report)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="spike", description="Brightspace iCal viability spike")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -110,6 +143,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--institution", required=True, help="institution slug (rules + timezone)")
     p.add_argument("--out", help="write the report here instead of stdout")
     p.set_defaults(func=cmd_inspect)
+
+    p = sub.add_parser("diff", help="compare two snapshots (UID stability + item changes)")
+    p.add_argument("old", nargs="?", help="older .ics")
+    p.add_argument("new", nargs="?", help="newer .ics")
+    p.add_argument("--institution", help="institution slug (when passing files)")
+    p.add_argument("--label", help="diff the two latest snapshots of this feed instead")
+    p.add_argument("--out", help="write the report here instead of stdout")
+    p.set_defaults(func=cmd_diff)
 
     return parser
 
