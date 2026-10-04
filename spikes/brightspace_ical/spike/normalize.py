@@ -46,6 +46,10 @@ class NormalizedItem:
     org_unit_id: str | None
     course_label: str | None
     venue: str | None
+    org_kind: str  # course | community | institution
+    source_tool: str | None  # Brightspace tool that created the event (quizzes, dropbox, ...)
+    category: str  # deliverable | exam | content | checklist | event | non_course
+    lms_event_id: str | None
     course_detection: str
     type_detection: str
     source_url: str | None
@@ -272,7 +276,13 @@ def _merge(
         warnings.append("due_from_availability_end")
 
     primary = (by_role.get("due") or by_role.get("plain") or by_role.get("end") or by_role.get("start"))[0]
+    tool = source_tool(primary.event.description)
     item_type, type_how = classify_type(primary.base_title, rules)
+    hint = TOOL_TYPE_HINTS.get(tool or "")
+    if hint and item_type not in ("midterm", "exam") and (item_type == "other" or tool == "quizzes"):
+        item_type, type_how = hint, f"tool:{tool}"
+    org_kind = _org_kind(primary, inst, rules)
+    category = _category(org_kind, item_type, tool, set(by_role))
     if start_at and not due_at and item_type in ("assignment", "other"):
         warnings.append("scheduled_block_without_due")
 
@@ -309,6 +319,10 @@ def _merge(
         org_unit_id=primary.org_unit,
         course_label=primary.course_label,
         venue=primary.venue,
+        org_kind=org_kind,
+        source_tool=tool,
+        category=category,
+        lms_event_id=lms_event_id(primary.event.uid),
         course_detection=primary.course_how,
         type_detection=type_how,
         source_url=primary.event.url,
@@ -332,6 +346,58 @@ def _point(c: _Classified, rules: Rules, tz, warnings: list[str]) -> tuple[datet
         if end and start and abs(end - start) > timedelta(minutes=1):
             warnings.append(f"{c.role}_event_has_duration")
     return start, False
+
+
+# "Quizzes: Quiz 1 - https://..." -> the D2L tool that owns the calendar event
+_TOOL_PREFIX = re.compile(
+    r"^\s*(checklists?|quizzes|quizzing|dropbox|assignments?|materials|modules|content|discussions?|surveys?|grades|self assessments?)\s*:",
+    re.I,
+)
+TOOL_TYPE_HINTS = {
+    "quizzes": "quiz", "dropbox": "assignment", "assignments": "assignment", "discussions": "discussion",
+}
+DELIVERABLE_TOOLS = {"quizzes", "dropbox", "assignments", "discussions", "surveys", "self assessments"}
+CONTENT_TOOLS = {"materials", "modules", "content"}
+
+
+def source_tool(description: str | None) -> str | None:
+    m = _TOOL_PREFIX.match(description or "")
+    if not m:
+        return None
+    tool = m.group(1).lower()
+    return {"checklist": "checklists", "quizzing": "quizzes", "assignment": "assignments",
+            "discussion": "discussions", "survey": "surveys", "self assessment": "self assessments"}.get(tool, tool)
+
+
+def lms_event_id(uid: str | None) -> str | None:
+    """D2L UIDs look like '<root org id>-<event id>@<host>'."""
+    m = re.match(r"^\d+-(\d+)@", uid or "")
+    return m.group(1) if m else None
+
+
+def _org_kind(c: "_Classified", inst: InstitutionConfig, rules: Rules) -> str:
+    if c.course_code:
+        return "course"
+    label = (c.course_label or "").casefold()
+    institution_labels = {inst.name.casefold(), *(x.casefold() for x in inst.rules.get("institution_labels", []))}
+    if label and label in institution_labels:
+        return "institution"
+    return "community" if label else "course"
+
+
+def _category(org_kind: str, item_type: str, tool: str | None, roles: set[str]) -> str:
+    """How the product should treat the item: only deliverables and exams drive deadline answers."""
+    if org_kind != "course":
+        return "non_course"
+    if item_type in ("exam", "midterm"):
+        return "exam"
+    if tool in CONTENT_TOOLS:
+        return "content"
+    if tool in ("checklists", "checklist"):
+        return "checklist"
+    if tool in DELIVERABLE_TOOLS or roles & {"due", "end"}:
+        return "deliverable"
+    return "event"
 
 
 def classify_type(title: str, rules: Rules) -> tuple[str, str]:

@@ -164,3 +164,57 @@ def test_laurier_section_style_codes():
                   last_modified=None)
     cm = detect_course(ev, build_rules())
     assert (cm.code, cm.name) == ("EC120", "Intro To Microeconomics")
+
+
+@pytest.mark.parametrize(
+    "description,tool",
+    [
+        ("Checklists: Complete Quiz 1 - https://learn.example.ca/d2l/lms/checklist/...", "checklists"),
+        ("Quizzes: Bonus Quiz 1: An Introduction to Integrity - https://...", "quizzes"),
+        ("Dropbox: ICE Working Group View event - https://...", "dropbox"),
+        ("Materials: Analysis and slidedoc rubric - https://...", "materials"),
+        ("Modules: Weekly Checklists - https://...", "modules"),
+        ("This quiz will introduce you to some scenarios", None),
+        (None, None),
+    ],
+)
+def test_source_tool_from_real_description_prefixes(description, tool):
+    from spike.normalize import source_tool
+    assert source_tool(description) == tool
+
+
+def test_lms_event_id_from_d2l_uid():
+    from spike.normalize import lms_event_id
+    assert lms_event_id("6606-3797564@learn.uwaterloo.ca") == "3797564"
+    assert lms_event_id("not-a-d2l-uid") is None
+
+
+def _ics(*events: str) -> bytes:
+    return ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" + "".join(events) + "END:VCALENDAR\r\n").encode()
+
+
+def _vevent(uid, summary, location, description=None, start="20261020T030000Z"):
+    desc = f"DESCRIPTION:{description}\r\n" if description else ""
+    return (f"BEGIN:VEVENT\r\nUID:{uid}\r\nSUMMARY:{summary}\r\nLOCATION:{location}\r\n{desc}"
+            f"DTSTART:{start}\r\nDTEND:{start}\r\nEND:VEVENT\r\n")
+
+
+def test_categories_separate_deliverables_from_noise():
+    inst = InstitutionConfig(slug="laurier", name="Wilfrid Laurier University", lms_name="MyLS",
+                             hosts=("x",), timezone="America/Toronto")
+    raw = _ics(
+        _vevent("6605-1@h", "ICE Working Group - Available", "BU-111-All-Sections - Biz", "Dropbox: ICE Working Group"),
+        _vevent("6605-2@h", "First Year Re-orientation - Due", "BU-111-All-Sections - Biz", "Quizzes: First Year Re-orientation"),
+        _vevent("6605-3@h", "Analysis rubric - Due", "BU-111-All-Sections - Biz", "Materials: Analysis rubric"),
+        _vevent("6605-4@h", "Monthly Maintenance Window", "Wilfrid Laurier University"),
+        _vevent("6605-5@h", "Info Session", "LH1001 (BBA Program Information)"),
+        _vevent("6605-6@h", "Midterm", "EC-120-A-B-C - Micro", "Quizzes: Midterm"),
+    )
+    by_title = {i.title: i for i in normalize_events(parse_ics(raw).events, inst)}
+    assert (by_title["ICE Working Group"].type, by_title["ICE Working Group"].category) == ("assignment", "deliverable")
+    assert (by_title["First Year Re-orientation"].type, by_title["First Year Re-orientation"].type_detection) == ("quiz", "tool:quizzes")
+    assert by_title["Analysis rubric"].category == "content"
+    assert (by_title["Monthly Maintenance Window"].org_kind, by_title["Monthly Maintenance Window"].category) == ("institution", "non_course")
+    assert (by_title["Info Session"].org_kind, by_title["Info Session"].venue) == ("community", "LH1001")
+    assert (by_title["Midterm"].type, by_title["Midterm"].category) == ("midterm", "exam")
+    assert by_title["Midterm"].lms_event_id == "6"
