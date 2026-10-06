@@ -1,0 +1,77 @@
+"""Thin OpenAI-compatible chat client (Gemini / Groq / Ollama / custom).
+
+The agent depends only on the `ChatModel` protocol, so tests use a
+scripted fake and the production SMS service can swap providers.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass, field
+from typing import Protocol
+
+
+@dataclass
+class ToolCall:
+    id: str
+    name: str
+    arguments: dict
+    raw_arguments: str
+
+
+@dataclass
+class AssistantTurn:
+    content: str | None
+    tool_calls: list[ToolCall] = field(default_factory=list)
+
+
+class LLMError(Exception):
+    pass
+
+
+class ChatModel(Protocol):
+    def complete(self, messages: list[dict], tools: list[dict]) -> AssistantTurn: ...
+
+
+class OpenAICompatModel:
+    def __init__(self, base_url: str, api_key: str, model: str, *, temperature: float = 0.2, timeout: float = 60):
+        import openai  # imported lazily so tests don't need network config
+
+        self._openai = openai
+        self.client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=timeout, max_retries=2)
+        self.model = model
+        self.temperature = temperature
+
+    def complete(self, messages: list[dict], tools: list[dict]) -> AssistantTurn:
+        o = self._openai
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=self.temperature,
+                **({"tools": tools} if tools else {}),
+            )
+        except o.AuthenticationError:
+            raise LLMError("the API key was rejected; check LLM_API_KEY in prototype/.env") from None
+        except o.RateLimitError:
+            raise LLMError("rate limited by the provider (free tiers have per-minute limits); wait a bit") from None
+        except o.NotFoundError as exc:
+            raise LLMError(f"model or endpoint not found ({self.model}); check LLM_MODEL: {exc}") from None
+        except o.APIConnectionError:
+            raise LLMError("couldn't reach the LLM endpoint (offline, or Ollama not running?)") from None
+        except o.APIStatusError as exc:
+            raise LLMError(f"provider error {exc.status_code}: {exc.message}") from None
+
+        if not resp.choices:
+            raise LLMError("provider returned no choices")
+        msg = resp.choices[0].message
+        calls = []
+        for tc in msg.tool_calls or []:
+            raw = tc.function.arguments or "{}"
+            try:
+                args = json.loads(raw)
+            except json.JSONDecodeError:
+                args = {"__invalid_json__": raw}
+            calls.append(ToolCall(id=tc.id, name=tc.function.name, arguments=args if isinstance(args, dict) else {},
+                                  raw_arguments=raw))
+        return AssistantTurn(content=msg.content, tool_calls=calls)
