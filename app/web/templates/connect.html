@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Connect {{ inst.lms_name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="row">
+    {% if logo %}<span class="logo"><img src="{{ logo }}" alt=""></span>{% else %}<span class="logo mono">{{ inst.name[:1] }}</span>{% endif %}
+    <div><span class="eyebrow">{{ inst.name }}</span><h2>Connect {{ inst.lms_name }}</h2></div>
+  </div>
+  <p class="muted small">Three taps. This shares your {{ inst.lms_name }} calendar only. No password, and you can disconnect anytime.</p>
+</div>
+
+<div class="card">
+  <ol class="steps">
+    <li><div><a class="btn soft sm" href="{{ calendar_url }}" target="_blank" rel="noopener noreferrer">Open my {{ inst.lms_name }} calendar ↗</a></div></li>
+    <li><div><span>Tap <strong>Subscribe</strong>, then <strong>Copy</strong>.</span>
+      <span class="tiny muted">No Subscribe button? Open the calendar's Settings and turn on <em>Enable Calendar Feeds</em>.</span></div></li>
+    <li><div><span>Come back here and tap the button below.</span></div></li>
+  </ol>
+
+  {% if error %}<div class="msg bad" role="alert">{{ error }}</div>{% endif %}
+
+  <form method="post" id="connect-form" class="card" style="padding:0; box-shadow:none; gap:12px">
+    <button type="button" class="btn" id="paste-btn">Paste and connect</button>
+    <details id="manual" {% if error or pasted %}open{% endif %}>
+      <summary>Paste didn't work?</summary>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <textarea name="feed_url" id="feed_url" placeholder="https://{{ inst.hosts[0] }}/d2l/le/calendar/feed/user/feed.ics?token=…" spellcheck="false" autocomplete="off" aria-label="Calendar link">{{ pasted or "" }}</textarea>
+        <button type="submit" class="btn soft">Connect</button>
+      </div>
+    </details>
+  </form>
+</div>
+<p class="tiny muted" style="text-align:center">Or skip this page: paste the link into your text thread with the assistant.</p>
+
+<script>
+(function () {
+  var btn = document.getElementById("paste-btn");
+  var form = document.getElementById("connect-form");
+  var field = document.getElementById("feed_url");
+  btn.addEventListener("click", function () {
+    if (!navigator.clipboard || !navigator.clipboard.readText) { document.getElementById("manual").open = true; field.focus(); return; }
+    navigator.clipboard.readText().then(function (text) {
+      if (text && text.trim()) { field.value = text.trim(); btn.disabled = true; btn.textContent = "Connecting…"; form.submit(); }
+      else { document.getElementById("manual").open = true; field.focus(); }
+    }, function () { document.getElementById("manual").open = true; field.focus(); });
+  });
+  form.addEventListener("submit", function () { btn.disabled = true; btn.textContent = "Connecting…"; });
+})();
+</script>
+{% endblock %}

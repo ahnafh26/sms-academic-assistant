@@ -7,6 +7,7 @@
 # rules:    optional overrides for rules.py defaults (course_code_regex,
 #           course_fields, extra_suffixes, all_day_due_time).
 # aliases:  what students might text when asked for their school.
+# calendar_org_unit: root org unit id, used to deep-link to the all-courses calendar.
 
 institutions:
   waterloo:
@@ -14,6 +15,7 @@ institutions:
     aliases: [waterloo, uwaterloo, uw, 'u of waterloo', uwat]
     lms_name: LEARN
     hosts: [learn.uwaterloo.ca]
+    calendar_org_unit: 6606   # root org unit (from real feed UIDs); its calendar shows all courses
     timezone: America/Toronto
     verified: true   # first real feed 2026-10-04
     rules: {}
@@ -23,6 +25,7 @@ institutions:
     aliases: [laurier, 'wilfrid laurier', wlu, 'wilfred laurier']
     lms_name: MyLearningSpace
     hosts: [mylearningspace.wlu.ca]
+    calendar_org_unit: 6605   # root org unit (from real feed UIDs); its calendar shows all courses
     timezone: America/Toronto
     verified: true   # first real feed 2026-10-04
     rules: {}

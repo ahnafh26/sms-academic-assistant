@@ -22,7 +22,14 @@ class InstitutionConfig:
     timezone: str
     verified: bool = False
     aliases: tuple[str, ...] = ()
+    calendar_org_unit: int | None = None
     rules: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def calendar_url(self) -> str:
+        """Where a student finds Calendar -> Subscribe (all-courses calendar when the root org unit is known)."""
+        base = f"https://{self.hosts[0]}"
+        return f"{base}/d2l/le/calendar/{self.calendar_org_unit}" if self.calendar_org_unit else f"{base}/d2l/home"
 
     def allows_host(self, host: str | None) -> bool:
         if not host:
@@ -43,6 +50,7 @@ def load_institutions(path: Path = REGISTRY) -> dict[str, InstitutionConfig]:
             timezone=item.get("timezone", "America/Toronto"),
             verified=bool(item.get("verified", False)),
             aliases=tuple(a.lower() for a in item.get("aliases", [])),
+            calendar_org_unit=item.get("calendar_org_unit"),
             rules=item.get("rules") or {},
         )
         for slug, item in (raw.get("institutions") or {}).items()
