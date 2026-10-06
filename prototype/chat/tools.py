@@ -70,7 +70,9 @@ class Toolbox:
         self._ref_by_id: dict[str, str] = {}
         self._id_by_ref: dict[str, str] = {}
         self._tools: dict[str, tuple[Callable[..., dict], dict]] = {}
+        self._last_refresh: datetime | None = None
         self._register_query_tools()
+        self._register_action_tools()
 
     # ------------------------------------------------------------ plumbing
 
@@ -245,6 +247,128 @@ class Toolbox:
             return {"period": label, "total": len(items),
                     "exams": sum(i.type in ("exam", "midterm") for i in items),
                     "days": days, "busiest_day": busiest["day"] if busiest else None}
+
+    # ------------------------------------------------------------ action tools
+
+    REFRESH_COOLDOWN = timedelta(minutes=10)
+
+    def _resolve(self, spec: str, *, want_completed: bool) -> Item | dict:
+        """A ref ("i3") or a casual description ("econ") -> one item, or a
+        dict asking the model to clarify. Prefers items near today that are
+        in the state the action expects (e.g. not yet done for mark_complete)."""
+        spec = (spec or "").strip()
+        if re.fullmatch(r"i\d+", spec):
+            item_id = self._id_by_ref.get(spec)
+            item = self.store.get(item_id) if item_id else None
+            if item is None:
+                raise ToolError(f"unknown ref '{spec}'; use find_items or list_deadlines first")
+            return item
+        now = self.now_fn()
+        ranked = [(s, i) for s, i in self._rank(spec, now)
+                  if i.completed == want_completed and i.when >= now - timedelta(days=7)]
+        if not ranked:
+            raise ToolError(f"nothing matches '{spec}'" + ("" if want_completed else " that isn't already done"))
+        top = ranked[0][0]
+        best = [i for s, i in ranked if s == top]
+        soonest = sorted(best, key=lambda i: abs((i.when - now).total_seconds()))
+        # one clear winner, or several equal matches where only one is due within 2 days
+        near = [i for i in soonest if abs((i.when - now).total_seconds()) <= 2 * 86400]
+        if len(best) == 1 or len(near) == 1:
+            return near[0] if len(near) == 1 else best[0]
+        return {"needs_clarification": True, "query": spec,
+                "candidates": [self.view(i, now) for i in soonest[:4]],
+                "instruction": "Ask the student which one they mean; do not act yet."}
+
+    def _register_action_tools(self) -> None:
+        item_prop = {"item": {"type": "string",
+                              "description": "Item ref like 'i3', or the student's words like 'econ' or 'cs a4'"}}
+
+        @self._tool("mark_complete", "Mark an item done ('I finished econ', 'mark BU111 done', 'done with that').",
+                    item_prop, ["item"])
+        def mark_complete(item: str) -> dict:
+            found = self._resolve(item, want_completed=False)
+            if isinstance(found, dict):
+                return found
+            now = self.now_fn()
+            self.store.set_completed(found.id, True, now)
+            return {"marked_complete": self.view(found, now)}
+
+        @self._tool("mark_incomplete", "Undo a done mark ('actually I didn't finish it').", item_prop, ["item"])
+        def mark_incomplete(item: str) -> dict:
+            found = self._resolve(item, want_completed=True)
+            if isinstance(found, dict):
+                return found
+            now = self.now_fn()
+            self.store.set_completed(found.id, False, now)
+            return {"marked_incomplete": self.view(found, now)}
+
+        @self._tool("set_estimate", "Store how long an item will take ('CS will probably take 3 hours').",
+                    {**item_prop, "hours": {"type": "number", "description": "Estimated hours of work left"}},
+                    ["item", "hours"])
+        def set_estimate(item: str, hours: float) -> dict:
+            if not 0 < hours <= 200:
+                raise ToolError("hours must be between 0 and 200")
+            found = self._resolve(item, want_completed=False)
+            if isinstance(found, dict):
+                return found
+            self.store.set_estimate(found.id, round(hours * 60))
+            return {"estimate_saved": self.view(found, self.now_fn())}
+
+        @self._tool(
+            "prioritize",
+            "Rank what to work on now ('what should I work on rn', 'what do I need to worry about'). "
+            "Uses due times and the student's own time estimates; reports what's unknown.",
+            {"horizon_days": {"type": "integer", "description": "How far ahead to consider (default 3)"}},
+        )
+        def prioritize(horizon_days: int = 3) -> dict:
+            now = self.now_fn()
+            horizon = now + timedelta(days=max(1, min(horizon_days, 14)))
+            pool = [i for i in self.store.items
+                    if not i.completed and now - timedelta(days=2) <= i.when <= horizon]
+            ranked = []
+            for i in pool:
+                hours_left = (i.when - now).total_seconds() / 3600
+                est = (i.estimate_minutes or 0) / 60
+                slack = hours_left - (est or 1.0)  # unknown effort counted as ~1h, flagged below
+                reasons = [f"{'due' if i.due else 'starts'} {fmt_relative(i.when, now)}"]
+                reasons.append(f"you estimated {est:g}h" if est else "no time estimate")
+                if i.type in ("exam", "midterm"):
+                    reasons.append("exam: needs prep time")
+                    slack -= 24
+                if hours_left < 0:
+                    reasons.append("overdue")
+                ranked.append((slack, i, reasons))
+            ranked.sort(key=lambda r: r[0])
+            missing = [f"{i.course} {i.title} ({self.ref(i)})" for _, i, _ in ranked if not i.estimate_minutes]
+            return {
+                "order": [{**self.view(i, now), "reasons": reasons} for _, i, reasons in ranked],
+                "unknown_estimates": missing,
+                "note": "Grade weights and difficulty are unknown unless the student says them. "
+                        "If estimates are missing, mention that and offer to track them.",
+            }
+
+        @self._tool("refresh_data", "Re-sync from Brightspace now ('refresh', 'check brightspace', "
+                    "'sync my courses'). Limited to once every 10 minutes.", {})
+        def refresh_data() -> dict:
+            if self.refresh_fn is None:
+                raise ToolError("refresh isn't available in this setup")
+            now = self.now_fn()
+            if self._last_refresh and now - self._last_refresh < self.REFRESH_COOLDOWN:
+                wait = self.REFRESH_COOLDOWN - (now - self._last_refresh)
+                return {"refreshed": False,
+                        "reason": f"synced {fmt_relative(self._last_refresh, now)}; try again in "
+                                  f"{max(1, round(wait.total_seconds() / 60))} min"}
+            before = {i.id: i.when for i in self.store.items}
+            summary = self.refresh_fn()
+            self._last_refresh = now
+            self.store.load()
+            after = {i.id: i.when for i in self.store.items}
+            new = [i for i in self.store.items if i.id not in before]
+            moved = [i for i in self.store.items if i.id in before and before[i.id] != i.when]
+            return {"refreshed": True, "sync_summary": summary,
+                    "new_items": [self.view(i, now) for i in new],
+                    "moved_items": [self.view(i, now) for i in moved],
+                    "removed_count": len(set(before) - set(after))}
 
     # ------------------------------------------------------------ matching
 
