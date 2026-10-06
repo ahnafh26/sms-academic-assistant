@@ -1,0 +1,14 @@
+# Texting assistant (app/). Spikes and the prototype keep their own requirements.
+fastapi>=0.115
+uvicorn>=0.30
+sqlalchemy>=2.0
+pydantic-settings>=2.4
+cryptography>=43
+httpx>=0.27
+icalendar>=6.0
+pyyaml>=6.0
+tzdata>=2025.1          # zoneinfo has no tz database on Windows
+openai>=1.40            # OpenAI-compatible client (Gemini / Groq / Ollama)
+jinja2>=3.1
+python-multipart>=0.0.9 # form posts on the connect page
+pytest>=8.0

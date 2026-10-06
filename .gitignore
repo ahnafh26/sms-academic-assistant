@@ -29,3 +29,6 @@ prototype/state.json
 
 # Email spike real emails and outputs
 spikes/brightspace_email/data/
+
+# Texting assistant local data (SQLite db, dev encryption key)
+/data/
