@@ -1,0 +1,131 @@
+# Ontario D2L Brightspace institutions (canonical registry for the texting assistant).
+#
+# One shared connector + normalizer; schools differ only by config here.
+# hosts:    hostnames a feed URL may point at (subdomains allowed). Fetching any
+#           other host is refused. Add CDN/redirect hosts once observed.
+# verified: true once a real feed from this school has been fetched and inspected.
+# rules:    optional overrides for rules.py defaults (course_code_regex,
+#           course_fields, extra_suffixes, all_day_due_time).
+# aliases:  what students might text when asked for their school.
+
+institutions:
+  waterloo:
+    name: University of Waterloo
+    aliases: [waterloo, uwaterloo, uw, 'u of waterloo', uwat]
+    lms_name: LEARN
+    hosts: [learn.uwaterloo.ca]
+    timezone: America/Toronto
+    verified: true   # first real feed 2026-10-04
+    rules: {}
+
+  laurier:
+    name: Wilfrid Laurier University
+    aliases: [laurier, 'wilfrid laurier', wlu, 'wilfred laurier']
+    lms_name: MyLearningSpace
+    hosts: [mylearningspace.wlu.ca]
+    timezone: America/Toronto
+    verified: true   # first real feed 2026-10-04
+    rules: {}
+
+  tmu:
+    name: Toronto Metropolitan University
+    aliases: [tmu, 'toronto metropolitan', 'toronto met', ryerson, 'ryerson university']
+    lms_name: D2L Brightspace
+    hosts: [courses.torontomu.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  mcmaster:
+    name: McMaster University
+    aliases: [mcmaster, mac, 'mcmaster university', mcm]
+    lms_name: Avenue to Learn
+    hosts: [avenue.cllmcmaster.ca]
+    timezone: America/Toronto
+    verified: false
+    rules:
+      # McMaster codes: long subject + level-letter-digit number, e.g. COMPSCI 1MD3, MATH 1ZA3
+      course_code_regex: '\b([A-Z]{2,8})\s?(\d[A-Z0-9]{2,3})\b'
+
+  queens:
+    name: Queen's University
+    aliases: [queens, "queen's", 'queens university', queensu]
+    lms_name: onQ
+    hosts: [onq.queensu.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  western:
+    name: Western University
+    aliases: [western, uwo, 'western university', 'western ontario']
+    lms_name: OWL Brightspace
+    hosts: [westernu.brightspace.com]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  guelph:
+    name: University of Guelph
+    aliases: [guelph, uoguelph, 'u of guelph', uofg]
+    lms_name: CourseLink
+    hosts: [courselink.uoguelph.ca]
+    timezone: America/Toronto
+    verified: false
+    rules:
+      # Guelph codes use an asterisk, e.g. CIS*1300, ACCT*1220
+      course_code_regex: '\b([A-Z]{2,5})\*(\d{4})\b'
+
+  brock:
+    name: Brock University
+    aliases: [brock, brocku, 'brock university']
+    lms_name: Brightspace
+    hosts: [brightspace.brocku.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  carleton:
+    name: Carleton University
+    aliases: [carleton, 'carleton university', cu]
+    lms_name: Brightspace
+    hosts: [brightspace.carleton.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  uottawa:
+    name: University of Ottawa
+    aliases: [uottawa, ottawa, 'u of ottawa', 'university of ottawa', uo]
+    lms_name: Brightspace
+    hosts: [uottawa.brightspace.com]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  windsor:
+    name: University of Windsor
+    aliases: [windsor, uwindsor, 'university of windsor']
+    lms_name: Brightspace
+    hosts: [brightspace.uwindsor.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  lakehead:
+    name: Lakehead University
+    aliases: [lakehead, lakeheadu, 'lakehead university']
+    lms_name: myCourseLink
+    hosts: [mycourselink.lakeheadu.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
+
+  laurentian:
+    name: Laurentian University
+    aliases: [laurentian, 'laurentian university', lu]
+    lms_name: D2L
+    hosts: [learn.laurentian.ca]
+    timezone: America/Toronto
+    verified: false
+    rules: {}
