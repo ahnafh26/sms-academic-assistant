@@ -249,33 +249,79 @@ details.extra .body { padding: 0 14px 14px; display: flex; flex-direction: colum
 
     <!-- 3 · connect Brightspace -->
     <section data-screen="connect" class="screen" hidden>
-      <div class="stack">
-        <h2 id="connect-h">Connect your calendar</h2>
-        <p class="muted small">You'll copy one private link from <span id="lms-name-1">Brightspace</span>. It only shares your calendar, and you can turn it off anytime.</p>
+      <!-- one tap: school has approved the app (Brightspace OAuth) -->
+      <div id="onetap" class="stack" style="gap:18px">
+        <div class="stack">
+          <h2 id="connect-h">Connect your courses</h2>
+          <p class="muted">One tap. You'll sign in on <span id="lms-name-1">Brightspace</span>'s own page, then come straight back.</p>
+        </div>
+        <ul class="checklist small panel">
+          <li class="yes"><span>Deadlines, quizzes and exams from every course</span></li>
+          <li class="yes"><span>Which assignments you've already submitted</span></li>
+          <li class="yes"><span>Grades as soon as they're released</span></li>
+          <li class="no"><span>Your password never comes here. It goes to your school.</span></li>
+        </ul>
+        <button class="btn" id="oauth-btn">Connect with <span id="lms-name-2">Brightspace</span></button>
+        <p class="small muted" style="text-align:center">Read-only. Disconnect anytime by texting MANAGE.</p>
       </div>
-      <ol class="steps small">
-        <li><div>Open <strong id="lms-name-2">Brightspace</strong> and go to <strong>Calendar</strong> (top bar, or inside any course).
-          <div class="mini"><span class="tab">Content</span><span class="tab hot">Calendar</span><span class="tab">Grades</span></div></div></li>
-        <li><div>Tap <strong>Subscribe</strong>. If you don't see it, open the calendar's <strong>Settings</strong> and tick <em>Enable Calendar Feeds</em> first.
-          <div class="mini"><span>📅 Calendar</span><span style="flex:1"></span><span class="tab hot">⤓ Subscribe</span></div></div></li>
-        <li><div>Choose <strong>All Courses</strong>, copy the link, and paste it below.
-          <div class="mini mono" id="feed-shape">https://…/d2l/le/calendar/feed/user/feed.ics?token=…</div></div></li>
-      </ol>
-      <div class="stack">
-        <label for="feed" class="eyebrow">Your calendar link</label>
-        <textarea class="field" id="feed" placeholder="Paste the link here" spellcheck="false"></textarea>
+
+      <!-- fallback: school hasn't approved the app yet (calendar link, about 3 taps) -->
+      <div id="fallback" class="stack" style="gap:18px" hidden>
+        <div class="stack">
+          <h2 id="fallback-h">Connect your calendar</h2>
+          <p class="muted small"><span id="lms-name-4">Brightspace</span> one-tap connect isn't switched on at your school yet, so this takes three taps.</p>
+        </div>
+        <ol class="steps small">
+          <li><div><a class="btn ghost small" id="open-cal" href="#" target="_blank" rel="noopener">Open my <span id="lms-name-5">Brightspace</span> calendar ↗</a></div></li>
+          <li><div>Tap <strong>Subscribe</strong>, then <strong>Copy</strong>.
+            <div class="mini"><span>📅 Calendar</span><span style="flex:1"></span><span class="tab hot">⤓ Subscribe</span></div>
+            <span class="muted">No Subscribe button? Open the calendar's Settings and turn on <em>Enable Calendar Feeds</em>.</span></div></li>
+          <li><div>Come back here and tap <strong>Paste and connect</strong>.</div></li>
+        </ol>
+        <button class="btn" id="paste-btn">Paste and connect</button>
         <div id="feed-error" class="msg bad" hidden></div>
-        <button class="linkbtn small" id="use-example" style="align-self:flex-start">Fill in an example link</button>
+        <details class="extra" id="manual">
+          <summary><h3 class="small">Paste didn't work?</h3><span class="help">Paste the link in yourself</span></summary>
+          <div class="body">
+            <textarea class="field" id="feed" placeholder="https://…/d2l/le/calendar/feed/user/feed.ics?token=…" spellcheck="false" aria-label="Calendar link"></textarea>
+            <button class="btn ghost" id="connect-btn">Connect</button>
+          </div>
+        </details>
+        <p class="small muted">Or skip this page entirely: paste the link into your text thread with the assistant.</p>
       </div>
-      <button class="btn" id="connect-btn">Connect</button>
-      <p class="small muted">Can't find Subscribe? Your school may have calendar feeds turned off. Text <strong>HELP</strong> and you can add a course outline instead.</p>
+    </section>
+
+    <!-- 3a · what happens on the school's site (one-tap path) -->
+    <section data-screen="oauth" class="screen" hidden>
+      <span class="eyebrow">Illustration · this part happens on your school's site</span>
+      <div class="panel" style="border-style:dashed; gap:14px">
+        <div class="mono muted">🔒 <span id="oauth-host">brightspace</span></div>
+        <div class="stack" style="gap:4px">
+          <h3>1. Sign in to <span id="lms-name-6">Brightspace</span> like you always do</h3>
+          <p class="small muted">Two-factor included. If you're already signed in on this phone, this step is skipped.</p>
+        </div>
+        <div class="stack" style="gap:8px">
+          <h3>2. Your school asks for permission</h3>
+          <div class="panel" style="gap:8px">
+            <p class="small"><strong>Assistant</strong> wants to:</p>
+            <ul class="checklist small">
+              <li class="yes"><span>See your calendar and due dates</span></li>
+              <li class="yes"><span>See your assignments and whether they're submitted</span></li>
+              <li class="yes"><span>See your grades</span></li>
+            </ul>
+            <p class="small muted">It can't submit, post, or change anything.</p>
+          </div>
+        </div>
+      </div>
+      <button class="btn" id="allow-btn">Allow</button>
+      <button class="btn ghost" data-go="connect">Cancel</button>
     </section>
 
     <!-- 3b · connecting / result -->
     <section data-screen="connecting" class="screen" hidden>
       <div class="stack" style="text-align:center; padding: 40px 0;">
         <div class="spinner" aria-hidden="true"></div>
-        <h2 style="margin-top:14px">Reading your calendar…</h2>
+        <h2 style="margin-top:14px" id="connecting-h">Reading your calendar…</h2>
         <p class="muted small">Finding courses and deadlines, and filtering out old and non-course events.</p>
       </div>
     </section>
@@ -300,7 +346,7 @@ details.extra .body { padding: 0 14px 14px; display: flex; flex-direction: colum
       </div>
 
       <details class="extra" id="extra-email">
-        <summary><h3>Forward Brightspace emails</h3><span class="help">Grades released, announcements, extensions</span><span class="pill off" id="email-pill">Not set up</span></summary>
+        <summary><h3>Forward Brightspace emails</h3><span class="help" id="email-help">Grades released, announcements, extensions</span><span class="pill off" id="email-pill">Not set up</span></summary>
         <div class="body small">
           <ol class="steps">
             <li><div>In <strong id="lms-name-3">Brightspace</strong>: your name → <strong>Notifications</strong>. Turn on email for grades, announcements and "due soon". Tick <em>Include my grade value</em>.</div></li>
@@ -405,14 +451,19 @@ details.extra .body { padding: 0 14px 14px; display: flex; flex-direction: colum
       <strong>Clickable mockup</strong>
       <span class="muted">The setup pages a student sees after texting the number. Nothing you type is saved or sent anywhere. Try a wrong link on the Connect step to see the error messages.</span>
     </div>
+    <div class="note small" style="margin-top:20px; border-left-color: var(--accent)">
+      <label class="check"><input type="checkbox" id="onetap-toggle" checked><span><strong>School approved one-tap connect</strong></span></label>
+      <span class="muted">One-tap uses Brightspace's official sign-in and needs each school to approve the app. No school has yet. Untick to see today's 3-tap fallback.</span>
+    </div>
     <nav id="jump" aria-label="Jump to screen"></nav>
   </aside>
 </div>
 
 <script>
 const SCHOOLS = [
-  { slug: "waterloo", name: "University of Waterloo", lms: "LEARN", host: "learn.uwaterloo.ca" },
-  { slug: "laurier", name: "Wilfrid Laurier University", lms: "MyLearningSpace", host: "mylearningspace.wlu.ca" },
+  // rootOu: the school's top org unit, seen in real feed UIDs ("6606-…@learn.uwaterloo.ca"); its calendar shows all courses
+  { slug: "waterloo", name: "University of Waterloo", lms: "LEARN", host: "learn.uwaterloo.ca", rootOu: 6606 },
+  { slug: "laurier", name: "Wilfrid Laurier University", lms: "MyLearningSpace", host: "mylearningspace.wlu.ca", rootOu: 6605 },
   { slug: "tmu", name: "Toronto Metropolitan University", lms: "D2L Brightspace", host: "courses.torontomu.ca" },
   { slug: "mcmaster", name: "McMaster University", lms: "Avenue to Learn", host: "avenue.cllmcmaster.ca" },
   { slug: "queens", name: "Queen's University", lms: "onQ", host: "onq.queensu.ca" },
@@ -463,14 +514,14 @@ const GENERIC = {
   morning: "Good morning 👋 1 thing due today:\n• PSYC 100 Quiz 3, 11:59 PM",
 };
 
-const STEP_SCREENS = { welcome: 1, school: 2, connect: 3, connecting: 3, connected: 3, extras: 4, prefs: 5 };
-const TITLES = { welcome: "Welcome", school: "Your school", connect: "Connect", connecting: "Connect", connected: "Connect",
+const STEP_SCREENS = { welcome: 1, school: 2, connect: 3, oauth: 3, connecting: 3, connected: 3, extras: 4, prefs: 5 };
+const TITLES = { welcome: "Welcome", school: "Your school", connect: "Connect", oauth: "Connect", connecting: "Connect", connected: "Connect",
   extras: "Extras", prefs: "Texts", done: "Done", manage: "Manage" };
 const JUMP = [["sms", "Text that starts it"], ["welcome", "1 · Welcome + consent"], ["school", "2 · Pick school"],
-  ["connect", "3 · Connect Brightspace"], ["connected", "3 · Courses found"], ["extras", "4 · Extras"],
+  ["connect", "3 · Connect Brightspace"], ["oauth", "3 · Sign in on school site"], ["connected", "3 · Courses found"], ["extras", "4 · Extras"],
   ["prefs", "5 · Text settings"], ["done", "Done"], ["sms-end", "Back in Messages"], ["manage", "MANAGE page"]];
 
-const state = { school: SCHOOLS[1], history: [], screen: "sms", email: false, outlines: new Set(), feedOk: false };
+const state = { school: SCHOOLS[1], history: [], screen: "sms", email: false, outlines: new Set(), feedOk: false, oneTap: true };
 const $ = (sel) => document.querySelector(sel);
 const data = () => EXAMPLES[state.school.slug] || GENERIC;
 
@@ -510,17 +561,22 @@ function renderSchools() {
 
 function render(name) {
   const s = state.school, d = data();
-  for (const id of ["lms-name-1", "lms-name-2", "lms-name-3"]) $("#" + id).textContent = s.lms;
+  for (let i = 1; i <= 6; i++) $("#lms-name-" + i).textContent = s.lms;
   if (name === "school") renderSchools();
   if (name === "connect") {
+    $("#onetap").hidden = !state.oneTap;
+    $("#fallback").hidden = state.oneTap;
     $("#connect-h").textContent = `Connect ${s.lms}`;
-    $("#feed-shape").textContent = `https://${s.host}/d2l/le/calendar/feed/user/feed.ics?token=…`;
+    $("#open-cal").href = s.rootOu ? `https://${s.host}/d2l/le/calendar/${s.rootOu}` : `https://${s.host}/d2l/home`;
   }
+  if (name === "oauth") $("#oauth-host").textContent = s.host;
+  if (name === "connecting")
+    $("#connecting-h").textContent = state.oneTap ? `Reading your ${s.lms} courses…` : "Reading your calendar…";
   if (name === "connected") {
     const total = d.courses.reduce((n, c) => n + c.upcoming, 0);
     const quiet = d.courses.filter((c) => c.upcoming === 0);
     $("#found-h").textContent = `Found ${d.courses.length} courses and ${total} upcoming deadlines`;
-    $("#found-sub").textContent = `Next up: ${d.next}.`;
+    $("#found-sub").textContent = `Next up: ${d.next}.` + (state.oneTap ? " Submissions and grades will update automatically." : "");
     $("#courses").innerHTML = d.courses.map((c) => `
       <div class="course"><span class="code">${c.code}</span><span class="sub">${c.name}</span>
       ${c.upcoming ? `<span class="pill">${c.upcoming} upcoming</span>` : `<span class="pill warn">No deadlines posted</span>`}</div>`).join("");
@@ -530,6 +586,7 @@ function render(name) {
   }
   if (name === "extras") {
     $("#sender-guess").textContent = `noreply@${s.host}`;
+    $("#email-help").textContent = state.oneTap ? "Announcements and extensions (grades already come through)" : "Grades released, announcements, extensions";
     const courses = [...d.courses].sort((a, b) => a.upcoming - b.upcoming);
     $("#syl-courses").innerHTML = courses.map((c) => {
       const added = state.outlines.has(c.code);
@@ -545,7 +602,7 @@ function render(name) {
   }
   if (name === "done") {
     $("#summary").innerHTML = `
-      <div class="setting"><span>${s.lms} calendar</span><span class="pill">Connected</span></div>
+      <div class="setting"><span>${s.lms} ${state.oneTap ? "account" : "calendar"}</span><span class="pill">Connected</span></div>
       <div class="setting"><span>Notification emails</span><span class="pill ${state.email ? "" : "off"}">${state.email ? "Forwarding" : "Later"}</span></div>
       <div class="setting"><span>Course outlines</span><span class="pill ${state.outlines.size ? "" : "off"}">${state.outlines.size || "Later"}</span></div>
       <div class="setting"><span>Morning summary</span><span class="pill ${$("#morning").value === "Off" ? "off" : ""}">${$("#morning").value}</span></div>`;
@@ -561,7 +618,7 @@ function render(name) {
     $("#morning-text").textContent = d.morning;
   }
   if (name === "manage") {
-    $("#m-lms").textContent = `${s.lms} calendar`;
+    $("#m-lms").textContent = `${s.lms} ${state.oneTap ? "account (read-only)" : "calendar"}`;
     $("#m-email").textContent = state.email ? "Forwarding from your school inbox" : "Not set up";
     $("#m-email-pill").textContent = state.email ? "On" : "Off";
     $("#m-email-pill").className = state.email ? "pill" : "pill off";
@@ -612,18 +669,33 @@ $("#school-next").addEventListener("click", () => {
   const picked = SCHOOLS.find((s) => s.slug === state.picked);
   if (picked) { state.school = picked; $("#feed").value = ""; $("#feed-error").hidden = true; go("connect"); }
 });
-$("#use-example").addEventListener("click", () => {
-  $("#feed").value = `https://${state.school.host}/d2l/le/calendar/feed/user/feed.ics?token=EXAMPLE-not-a-real-token`;
-  $("#feed-error").hidden = true;
-});
-$("#connect-btn").addEventListener("click", () => {
-  const err = validateFeed($("#feed").value, state.school);
+function connectWith(link) {
+  const err = validateFeed(link, state.school);
   $("#feed-error").hidden = !err;
   $("#feed-error").textContent = err || "";
   if (err) return;
   state.feedOk = true;
   go("connecting");
   setTimeout(() => { if (state.screen === "connecting") go("connected"); }, 1400);
+}
+$("#paste-btn").addEventListener("click", async () => {
+  let link = "";
+  try { link = await navigator.clipboard.readText(); } catch { /* blocked here; works on the real site */ }
+  // Mockup: clipboard reading is blocked inside this preview, so use an example link.
+  if (!link.trim()) link = `https://${state.school.host}/d2l/le/calendar/feed/user/feed.ics?token=EXAMPLE-not-a-real-token`;
+  connectWith(link);
+});
+$("#connect-btn").addEventListener("click", () => connectWith($("#feed").value));
+$("#oauth-btn").addEventListener("click", () => go("oauth"));
+$("#allow-btn").addEventListener("click", () => {
+  state.feedOk = true;
+  go("connecting");
+  setTimeout(() => { if (state.screen === "connecting") go("connected"); }, 1400);
+});
+$("#onetap-toggle").addEventListener("change", (e) => {
+  state.oneTap = e.target.checked;
+  if (["connect", "oauth"].includes(state.screen)) go("connect", { push: false });
+  else render(state.screen);
 });
 $("#copy-fwd").addEventListener("click", async () => {
   const addr = $("#fwd-addr").textContent;
