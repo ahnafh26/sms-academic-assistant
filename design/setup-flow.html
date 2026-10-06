@@ -1,0 +1,653 @@
+<title>Assistant Setup Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one phone-width column (the setup link opens on a phone, from a text);
+   on wide screens a reviewer rail sits beside it. Highlighter marks are the one bold device. */
+:root {
+  --bg: #eef2f0;
+  --surface: #fbfcfb;
+  --ink: #14201c;
+  --muted: #5d6b66;
+  --line: #d5ddd9;
+  --accent: #0f7a5f;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcefe8;
+  --mark: #f5dc5e;
+  --mark-ink: #14201c;
+  --warn: #9a5b00;
+  --warn-soft: #fbefd9;
+  --bad: #b3261e;
+  --bad-soft: #fbe3e1;
+  --bubble-them: #e3e9e6;
+  --bubble-me: #0f7a5f;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1311; --surface: #131c19; --ink: #e5eee9; --muted: #95a59f; --line: #263430;
+    --accent: #38c59a; --accent-ink: #06231a; --accent-soft: #173b30; --mark: #8f7c1d; --mark-ink: #fff7d1;
+    --warn: #f0b45a; --warn-soft: #3a2a10; --bad: #ff8a80; --bad-soft: #3d1715;
+    --bubble-them: #22302b; --bubble-me: #1f8f6e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1311; --surface: #131c19; --ink: #e5eee9; --muted: #95a59f; --line: #263430;
+  --accent: #38c59a; --accent-ink: #06231a; --accent-soft: #173b30; --mark: #8f7c1d; --mark-ink: #fff7d1;
+  --warn: #f0b45a; --warn-soft: #3a2a10; --bad: #ff8a80; --bad-soft: #3d1715;
+  --bubble-them: #22302b; --bubble-me: #1f8f6e; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-inline: 16px; padding-block: 24px 48px;
+}
+.layout { display: flex; gap: 32px; justify-content: center; align-items: flex-start; }
+.phone {
+  width: 100%; max-width: 420px; min-width: 0; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 28px; overflow: hidden; box-shadow: 0 18px 50px -24px rgba(10, 30, 24, .35);
+}
+.rail { width: 260px; flex: none; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); }
+@media (max-width: 760px) { .rail { display: none; } }
+
+h1, h2 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.015em; line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: 1.85rem; }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1rem; margin: 0; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+.mark { background: linear-gradient(transparent 55%, var(--mark) 55%); color: inherit; padding-inline: 2px; }
+.mono { font-family: var(--font-mono); font-size: .82rem; word-break: break-all; }
+.eyebrow { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* top bar + progress (the five steps are a real sequence) */
+.topbar { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); min-height: 58px; }
+.topbar .title { font-weight: 600; flex: 1; min-width: 0; }
+.iconbtn { background: none; border: 0; color: var(--ink); font: inherit; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.iconbtn:hover { background: var(--accent-soft); }
+.progress { display: flex; gap: 6px; padding: 12px 18px 0; }
+.progress span { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
+.progress span.on { background: var(--accent); }
+.stepnote { padding: 6px 18px 0; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.screen { padding: 22px 18px 26px; display: flex; flex-direction: column; gap: 18px; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 10px; align-items: center; }
+
+/* buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px;
+  border-radius: 999px; border: 1px solid transparent; font: 600 1rem var(--font-body); cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); padding: 0 20px;
+}
+.btn:hover { filter: brightness(1.06); }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.danger { background: var(--bad); color: #fff; }
+.btn.small { width: auto; min-height: 36px; font-size: .875rem; padding: 0 14px; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font: 600 .95rem var(--font-body); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* messages thread */
+.thread { background: var(--surface); padding: 18px 14px 22px; display: flex; flex-direction: column; gap: 8px; }
+.contact { text-align: center; padding: 18px 0 10px; border-bottom: 1px solid var(--line); }
+.avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin: 0 auto 6px; font: 800 1.2rem var(--font-display); }
+.bubble { max-width: 82%; padding: 9px 13px; border-radius: 18px; font-size: .95rem; white-space: pre-line; }
+.bubble.them { background: var(--bubble-them); align-self: flex-start; border-bottom-left-radius: 6px; }
+.bubble.me { background: var(--bubble-me); color: #fff; align-self: flex-end; border-bottom-right-radius: 6px; }
+.bubble a, .bubble .lnk { color: inherit; text-decoration: underline; font-weight: 600; }
+.stamp { text-align: center; font-size: .75rem; color: var(--muted); margin: 6px 0; }
+
+/* cards and lists */
+.panel { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.panel.accent { background: var(--accent-soft); border-color: transparent; }
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; }
+.yes::before { content: "✓"; color: var(--accent); font-weight: 700; }
+.no::before { content: "✕"; color: var(--bad); font-weight: 700; }
+.steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; counter-increment: s; }
+.steps li::before { content: counter(s); width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--surface); display: grid; place-items: center; font: 700 .8rem var(--font-body); }
+.steps li > div { min-width: 0; }
+
+/* mini Brightspace illustrations */
+.mini { margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: .78rem; background: var(--bg); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mini .tab { padding: 2px 8px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); }
+.mini .tab.hot { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* school list */
+.field { width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font: 1rem var(--font-body); background: var(--surface); color: var(--ink); }
+textarea.field { min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: .82rem; }
+.schools { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 2px; }
+.school { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.school:hover { border-color: var(--accent); }
+.school[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.school .lms { font-size: .8rem; color: var(--muted); grid-column: 1; }
+.school .host { font-size: .72rem; color: var(--muted); font-family: var(--font-mono); grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+
+/* status */
+.msg { border-radius: 12px; padding: 10px 12px; font-size: .9rem; }
+.msg.bad { background: var(--bad-soft); color: var(--bad); }
+.msg.warn { background: var(--warn-soft); color: var(--warn); }
+.pill { display: inline-block; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.off { background: var(--line); color: var(--muted); }
+.courses { display: flex; flex-direction: column; }
+.course { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 0; border-top: 1px solid var(--line); align-items: center; }
+.course:first-child { border-top: 0; }
+.course .code { font-weight: 600; font-variant-numeric: tabular-nums; }
+.course .sub { grid-column: 1; font-size: .8rem; color: var(--muted); }
+.course .pill { grid-column: 2; grid-row: 1 / span 2; }
+.spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .9s linear infinite; margin: 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* toggles / settings */
+.setting { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.setting:first-child { border-top: 0; }
+.setting .help { grid-column: 1; font-size: .8rem; color: var(--muted); }
+.setting > :last-child { grid-column: 2; grid-row: 1 / span 2; }
+.switch { position: relative; width: 48px; height: 28px; flex: none; }
+.switch input { opacity: 0; width: 100%; height: 100%; position: absolute; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background .15s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.switch input:checked + span { background: var(--accent); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+select.field { width: auto; min-height: 40px; padding: 6px 10px; }
+.check { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; font-size: .92rem; cursor: pointer; }
+.check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); }
+
+details.extra { border: 1px solid var(--line); border-radius: var(--radius); }
+details.extra summary { list-style: none; cursor: pointer; padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
+details.extra summary::-webkit-details-marker { display: none; }
+details.extra summary .help { font-size: .82rem; color: var(--muted); grid-column: 1; }
+details.extra summary .pill { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+details.extra .body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+.copyrow { display: flex; gap: 8px; align-items: center; border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; }
+.copyrow .mono { flex: 1; min-width: 0; }
+
+/* reviewer rail */
+.rail .note { border-left: 3px solid var(--mark); padding: 4px 0 4px 12px; display: flex; flex-direction: column; gap: 6px; }
+.rail nav { margin-top: 20px; display: flex; flex-direction: column; gap: 2px; }
+.rail nav button { text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 8px; color: var(--ink); font: .9rem var(--font-body); cursor: pointer; }
+.rail nav button:hover { background: var(--surface); }
+.rail nav button.on { background: var(--surface); font-weight: 600; }
+.mobile-note { max-width: 420px; margin: 0 auto 12px; font-size: .8rem; color: var(--muted); text-align: center; }
+@media (min-width: 761px) { .mobile-note { display: none; } }
+
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .switch span, .switch span::after { transition: none; } }
+</style>
+
+<p class="mobile-note">Clickable mockup. Nothing you type is saved or sent anywhere.</p>
+<div class="layout">
+  <main class="phone" aria-live="polite">
+    <div id="chrome" hidden>
+      <div class="topbar">
+        <button class="iconbtn" id="back" aria-label="Back">←</button>
+        <div class="title" id="screen-title">Set up</div>
+      </div>
+      <div class="progress" id="progress" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="stepnote" id="stepnote"></div>
+    </div>
+
+    <!-- 0 · the text that starts it all -->
+    <section data-screen="sms" class="thread">
+      <div class="contact">
+        <div class="avatar">A</div>
+        <div><strong>Assistant</strong></div>
+        <div class="small muted">(519) 555-0142</div>
+      </div>
+      <div class="stamp">Today 7:41 PM</div>
+      <div class="bubble me">hi</div>
+      <div class="bubble them">Hey 👋 I'm your school assistant. Connect your courses once, then text me anything: what's due, what's next, "I finished econ".</div>
+      <div class="bubble them">Tap to set up (takes 2 min, link expires in 30 min):
+<button class="linkbtn lnk" data-go="welcome" style="color:inherit">setup.example.ca/s/x7Kp2</button></div>
+    </section>
+
+    <!-- 1 · welcome + consent -->
+    <section data-screen="welcome" class="screen" hidden>
+      <div class="stack">
+        <h1>Connect your school once. <span class="mark">Then just text.</span></h1>
+        <p class="muted">This page only handles the connection. Questions, reminders and answers all happen in your texts.</p>
+      </div>
+      <div class="panel">
+        <h3>What the assistant can see</h3>
+        <ul class="checklist small">
+          <li class="yes"><span>Deadlines, quizzes and exams from your Brightspace calendar</span></li>
+          <li class="yes"><span>Anything you send it: course outlines, grades, "this will take 3 hours"</span></li>
+          <li class="yes"><span>Brightspace notification emails, only if you choose to forward them</span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>What it never does</h3>
+        <ul class="checklist small">
+          <li class="no"><span>Ask for or store your university password</span></li>
+          <li class="no"><span>Submit work, post, or change anything in Brightspace</span></li>
+          <li class="no"><span>Share your data with your school, profs or anyone else</span></li>
+        </ul>
+      </div>
+      <label class="check"><input type="checkbox" id="consent"><span>I agree to the <span class="linkbtn" style="font-weight:600">terms</span> and <span class="linkbtn" style="font-weight:600">privacy policy</span>, and to get texts from this number. Text STOP anytime.</span></label>
+      <button class="btn" id="welcome-next" disabled>Get started</button>
+    </section>
+
+    <!-- 2 · school -->
+    <section data-screen="school" class="screen" hidden>
+      <div class="stack">
+        <h2>Which school do you go to?</h2>
+        <p class="muted small">Ontario schools on Brightspace. Canvas, Moodle and Blackboard schools are coming later.</p>
+      </div>
+      <input class="field" id="school-search" type="search" placeholder="Search, e.g. Laurier or McMaster" autocomplete="off" aria-label="Search schools">
+      <div class="schools" id="schools" role="list"></div>
+      <button class="btn" id="school-next" disabled>Continue</button>
+    </section>
+
+    <!-- 3 · connect Brightspace -->
+    <section data-screen="connect" class="screen" hidden>
+      <div class="stack">
+        <h2 id="connect-h">Connect your calendar</h2>
+        <p class="muted small">You'll copy one private link from <span id="lms-name-1">Brightspace</span>. It only shares your calendar, and you can turn it off anytime.</p>
+      </div>
+      <ol class="steps small">
+        <li><div>Open <strong id="lms-name-2">Brightspace</strong> and go to <strong>Calendar</strong> (top bar, or inside any course).
+          <div class="mini"><span class="tab">Content</span><span class="tab hot">Calendar</span><span class="tab">Grades</span></div></div></li>
+        <li><div>Tap <strong>Subscribe</strong>. If you don't see it, open the calendar's <strong>Settings</strong> and tick <em>Enable Calendar Feeds</em> first.
+          <div class="mini"><span>📅 Calendar</span><span style="flex:1"></span><span class="tab hot">⤓ Subscribe</span></div></div></li>
+        <li><div>Choose <strong>All Courses</strong>, copy the link, and paste it below.
+          <div class="mini mono" id="feed-shape">https://…/d2l/le/calendar/feed/user/feed.ics?token=…</div></div></li>
+      </ol>
+      <div class="stack">
+        <label for="feed" class="eyebrow">Your calendar link</label>
+        <textarea class="field" id="feed" placeholder="Paste the link here" spellcheck="false"></textarea>
+        <div id="feed-error" class="msg bad" hidden></div>
+        <button class="linkbtn small" id="use-example" style="align-self:flex-start">Fill in an example link</button>
+      </div>
+      <button class="btn" id="connect-btn">Connect</button>
+      <p class="small muted">Can't find Subscribe? Your school may have calendar feeds turned off. Text <strong>HELP</strong> and you can add a course outline instead.</p>
+    </section>
+
+    <!-- 3b · connecting / result -->
+    <section data-screen="connecting" class="screen" hidden>
+      <div class="stack" style="text-align:center; padding: 40px 0;">
+        <div class="spinner" aria-hidden="true"></div>
+        <h2 style="margin-top:14px">Reading your calendar…</h2>
+        <p class="muted small">Finding courses and deadlines, and filtering out old and non-course events.</p>
+      </div>
+    </section>
+
+    <section data-screen="connected" class="screen" hidden>
+      <div class="stack">
+        <span class="pill">Connected ✓</span>
+        <h2 id="found-h">Found your courses</h2>
+        <p class="muted small" id="found-sub"></p>
+      </div>
+      <div class="panel"><div class="courses" id="courses"></div></div>
+      <div id="gap-msg" class="msg warn" hidden></div>
+      <p class="small muted">Example results based on real LEARN and MyLearningSpace feeds.</p>
+      <button class="btn" data-go="extras">Continue</button>
+    </section>
+
+    <!-- 4 · extras -->
+    <section data-screen="extras" class="screen" hidden>
+      <div class="stack">
+        <h2>Fill the gaps <span class="muted" style="font-weight:600">(optional)</span></h2>
+        <p class="muted small">The calendar doesn't include grades, announcements, or deadlines kept outside Brightspace. Both of these can be done later by text.</p>
+      </div>
+
+      <details class="extra" id="extra-email">
+        <summary><h3>Forward Brightspace emails</h3><span class="help">Grades released, announcements, extensions</span><span class="pill off" id="email-pill">Not set up</span></summary>
+        <div class="body small">
+          <ol class="steps">
+            <li><div>In <strong id="lms-name-3">Brightspace</strong>: your name → <strong>Notifications</strong>. Turn on email for grades, announcements and "due soon". Tick <em>Include my grade value</em>.</div></li>
+            <li><div>In Outlook: <strong>Settings → Mail → Rules → Add rule</strong>. Rule: emails from <span class="mono" id="sender-guess">noreply@…</span> → forward to:</div></li>
+          </ol>
+          <div class="copyrow"><span class="mono" id="fwd-addr">u-7kq2x9@in.example.ca</span><button class="btn ghost small" id="copy-fwd">Copy</button></div>
+          <p class="muted">That address is private to you. If an announcement moves a deadline, you'll get a text asking before anything changes.</p>
+          <label class="check"><input type="checkbox" id="email-done"><span>I've set up the rule</span></label>
+        </div>
+      </details>
+
+      <details class="extra" id="extra-syllabus">
+        <summary><h3>Add course outlines</h3><span class="help">Grade weights, plus deadlines not in the calendar</span><span class="pill off" id="syl-pill">0 added</span></summary>
+        <div class="body small">
+          <p class="muted">PDF, Word, or photos of the pages. You'll get a text if anything needs confirming.</p>
+          <div class="courses" id="syl-courses"></div>
+        </div>
+      </details>
+
+      <div class="stack">
+        <button class="btn" data-go="prefs">Continue</button>
+        <button class="btn ghost" data-go="prefs">Skip for now</button>
+      </div>
+    </section>
+
+    <!-- 5 · preferences -->
+    <section data-screen="prefs" class="screen" hidden>
+      <div class="stack">
+        <h2>How often should it text you?</h2>
+        <p class="muted small">Change any of this later by texting, e.g. "send my morning text at 9".</p>
+      </div>
+      <div class="panel" style="padding-block:4px">
+        <div class="setting"><h3>Morning summary</h3><span class="help">What's due today and tomorrow</span>
+          <select class="field" id="morning"><option>Off</option><option>7:00 AM</option><option selected>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option></select></div>
+        <div class="setting"><h3>Heads-up before deadlines</h3><span class="help">For anything not marked done</span>
+          <select class="field" id="offset"><option>Off</option><option>1 hour before</option><option selected>3 hours before</option><option>1 day before</option></select></div>
+        <div class="setting"><h3>Change alerts</h3><span class="help">When a deadline moves, or something new is posted</span>
+          <label class="switch"><input type="checkbox" id="alerts" checked aria-label="Change alerts"><span></span></label></div>
+        <div class="setting"><h3>Sunday week preview</h3><span class="help">Deadlines and exams coming up next week</span>
+          <label class="switch"><input type="checkbox" id="weekly" checked aria-label="Sunday week preview"><span></span></label></div>
+        <div class="setting"><h3>Quiet hours</h3><span class="help">No automatic texts 11 PM – 7 AM</span>
+          <label class="switch"><input type="checkbox" id="quiet" checked aria-label="Quiet hours"><span></span></label></div>
+      </div>
+      <button class="btn" data-go="done">Finish</button>
+    </section>
+
+    <!-- done -->
+    <section data-screen="done" class="screen" hidden>
+      <div class="stack">
+        <h1>You're set. <span class="mark">Go back to your texts.</span></h1>
+        <p class="muted">Everything from here happens by text. You can close this page.</p>
+      </div>
+      <div class="panel small" id="summary"></div>
+      <button class="btn" data-go="sms-end">Back to Messages</button>
+      <p class="small muted" style="text-align:center">Text <strong>MANAGE</strong> anytime to get a link to your settings. <button class="linkbtn small" data-go="manage">Preview it</button></p>
+    </section>
+
+    <!-- back in messages -->
+    <section data-screen="sms-end" class="thread" hidden>
+      <div class="contact">
+        <div class="avatar">A</div>
+        <div><strong>Assistant</strong></div>
+        <div class="small muted">(519) 555-0142</div>
+      </div>
+      <div class="stamp">Today 7:44 PM</div>
+      <div class="bubble them" id="connected-text"></div>
+      <div class="bubble me">what's due tomorrow</div>
+      <div class="bubble them" id="tomorrow-text"></div>
+      <div class="bubble me">I finished econ</div>
+      <div class="bubble them" id="done-text"></div>
+      <div class="stamp" id="morning-stamp">Tomorrow 8:00 AM</div>
+      <div class="bubble them" id="morning-text"></div>
+      <button class="btn ghost" data-go="manage" style="margin-top:14px">Preview the MANAGE page</button>
+    </section>
+
+    <!-- manage -->
+    <section data-screen="manage" class="screen" hidden>
+      <div class="stack">
+        <span class="eyebrow">Your account</span>
+        <h2>Settings</h2>
+        <p class="muted small">Opened from a one-time link texted to <span style="font-variant-numeric:tabular-nums">(•••) •••-0187</span>. Expires in 30 min.</p>
+      </div>
+      <div class="panel" style="padding-block:4px">
+        <div class="setting"><h3 id="m-lms">Brightspace calendar</h3><span class="help" id="m-sync">Last checked 12 min ago</span><button class="btn ghost small" id="disconnect">Disconnect</button></div>
+        <div class="setting"><h3>Notification emails</h3><span class="help" id="m-email">Not set up</span><span class="pill off" id="m-email-pill">Off</span></div>
+        <div class="setting"><h3>Course outlines</h3><span class="help" id="m-syl">None added</span><button class="btn ghost small" data-go="extras">Add</button></div>
+      </div>
+      <div class="panel small" id="m-prefs"></div>
+      <div class="panel" id="delete-panel">
+        <h3>Delete your account</h3>
+        <p class="small muted">Deletes your courses, deadlines, outlines, grades and messages. This can't be undone.</p>
+        <label class="small" for="delete-confirm">Type <strong>DELETE</strong> to confirm</label>
+        <input class="field" id="delete-confirm" autocomplete="off">
+        <button class="btn danger" id="delete-btn" disabled>Delete everything</button>
+      </div>
+      <div class="msg warn" id="deleted-msg" hidden>Account deleted. You'll get one last text confirming it. Text "hi" to start over anytime.</div>
+    </section>
+  </main>
+
+  <aside class="rail">
+    <div class="note small">
+      <strong>Clickable mockup</strong>
+      <span class="muted">The setup pages a student sees after texting the number. Nothing you type is saved or sent anywhere. Try a wrong link on the Connect step to see the error messages.</span>
+    </div>
+    <nav id="jump" aria-label="Jump to screen"></nav>
+  </aside>
+</div>
+
+<script>
+const SCHOOLS = [
+  { slug: "waterloo", name: "University of Waterloo", lms: "LEARN", host: "learn.uwaterloo.ca" },
+  { slug: "laurier", name: "Wilfrid Laurier University", lms: "MyLearningSpace", host: "mylearningspace.wlu.ca" },
+  { slug: "tmu", name: "Toronto Metropolitan University", lms: "D2L Brightspace", host: "courses.torontomu.ca" },
+  { slug: "mcmaster", name: "McMaster University", lms: "Avenue to Learn", host: "avenue.cllmcmaster.ca" },
+  { slug: "queens", name: "Queen's University", lms: "onQ", host: "onq.queensu.ca" },
+  { slug: "western", name: "Western University", lms: "OWL Brightspace", host: "westernu.brightspace.com" },
+  { slug: "guelph", name: "University of Guelph", lms: "CourseLink", host: "courselink.uoguelph.ca" },
+  { slug: "brock", name: "Brock University", lms: "Brightspace", host: "brightspace.brocku.ca" },
+  { slug: "carleton", name: "Carleton University", lms: "Brightspace", host: "brightspace.carleton.ca" },
+  { slug: "uottawa", name: "University of Ottawa", lms: "Brightspace", host: "uottawa.brightspace.com" },
+  { slug: "windsor", name: "University of Windsor", lms: "Brightspace", host: "brightspace.uwindsor.ca" },
+  { slug: "lakehead", name: "Lakehead University", lms: "myCourseLink", host: "mycourselink.lakeheadu.ca" },
+  { slug: "laurentian", name: "Laurentian University", lms: "D2L", host: "learn.laurentian.ca" },
+];
+
+// Example results shaped like the real first-fetch findings (docs: spikes/brightspace_ical/findings).
+const EXAMPLES = {
+  waterloo: {
+    courses: [
+      { code: "MATH 135", name: "Algebra for Honours Mathematics", upcoming: 4 },
+      { code: "CS 115", name: "Introduction to Computer Science 1", upcoming: 0 },
+      { code: "MATH 137", name: "Calculus 1 for Honours Mathematics", upcoming: 0 },
+      { code: "MTHEL 99", name: "Math Elements", upcoming: 0 },
+    ],
+    next: "MATH 135 Bonus Quiz 1, Mon Dec 7 at 4:05 PM",
+    tomorrow: "Nothing due tomorrow in your calendar.\n\nHeads up: CS 115 and MATH 137 don't post deadlines to LEARN. Send me their outlines and I'll track those too.",
+    finished: "I don't see an econ course in your calendar. Your courses are MATH 135, CS 115, MATH 137 and MTHEL 99.",
+    morning: "Good morning 👋 Nothing due today.\n\nNext up: MATH 135 Bonus Quiz 1, Dec 7.",
+  },
+  laurier: {
+    courses: [
+      { code: "EC 120", name: "Intro To Microeconomics", upcoming: 26 },
+      { code: "BU 111", name: "Understanding the Business Environment", upcoming: 11 },
+    ],
+    next: "EC 120 Ch. 5 EOC Problems, Tue Oct 6 at 10:00 AM",
+    tomorrow: "2 things due tomorrow (Tue):\n• EC 120 Ch. 5 EOC Problems, 10 AM\n• EC 120 Ch. 7 Podcast Assignment, 10 AM",
+    finished: "Which one? You have 2 EC 120 items due tomorrow:\n• Ch. 5 EOC Problems\n• Ch. 7 Podcast Assignment",
+    morning: "Good morning 👋 2 things due today:\n• EC 120 Ch. 7 Podcast Assignment, 10 AM\n• EC 120 Ch. 5 EOC Problems, 10 AM",
+  },
+};
+const GENERIC = {
+  courses: [
+    { code: "BIOL 101", name: "Introduction to Biology", upcoming: 9 },
+    { code: "PSYC 100", name: "Introduction to Psychology", upcoming: 6 },
+    { code: "ECON 101", name: "Principles of Microeconomics", upcoming: 0 },
+  ],
+  next: "BIOL 101 Lab Report 2, Thu Oct 8 at 11:59 PM",
+  tomorrow: "1 thing due tomorrow: PSYC 100 Quiz 3 at 11:59 PM.",
+  finished: "Marked ECON 101 Problem Set 2 done ✅",
+  morning: "Good morning 👋 1 thing due today:\n• PSYC 100 Quiz 3, 11:59 PM",
+};
+
+const STEP_SCREENS = { welcome: 1, school: 2, connect: 3, connecting: 3, connected: 3, extras: 4, prefs: 5 };
+const TITLES = { welcome: "Welcome", school: "Your school", connect: "Connect", connecting: "Connect", connected: "Connect",
+  extras: "Extras", prefs: "Texts", done: "Done", manage: "Manage" };
+const JUMP = [["sms", "Text that starts it"], ["welcome", "1 · Welcome + consent"], ["school", "2 · Pick school"],
+  ["connect", "3 · Connect Brightspace"], ["connected", "3 · Courses found"], ["extras", "4 · Extras"],
+  ["prefs", "5 · Text settings"], ["done", "Done"], ["sms-end", "Back in Messages"], ["manage", "MANAGE page"]];
+
+const state = { school: SCHOOLS[1], history: [], screen: "sms", email: false, outlines: new Set(), feedOk: false };
+const $ = (sel) => document.querySelector(sel);
+const data = () => EXAMPLES[state.school.slug] || GENERIC;
+
+function go(name, { push = true } = {}) {
+  if (name === "connected" && !state.feedOk) state.feedOk = true;  // jumping ahead from the rail
+  if (push && state.screen !== name) state.history.push(state.screen);
+  state.screen = name;
+  document.querySelectorAll("[data-screen]").forEach((s) => { s.hidden = s.dataset.screen !== name; });
+  const inFlow = !["sms", "sms-end"].includes(name);
+  $("#chrome").hidden = !inFlow;
+  $("#screen-title").textContent = TITLES[name] || "";
+  const step = STEP_SCREENS[name];
+  $("#progress").hidden = !step;
+  $("#stepnote").hidden = !step;
+  if (step) {
+    document.querySelectorAll("#progress span").forEach((s, i) => s.classList.toggle("on", i < step));
+    $("#stepnote").textContent = `Step ${step} of 5`;
+  }
+  render(name);
+  document.querySelectorAll("#jump button").forEach((b) => b.classList.toggle("on", b.dataset.to === name));
+  $(".phone").scrollIntoView({ block: "start" });
+}
+
+function back() {
+  const prev = state.history.pop();
+  go(prev === "connecting" ? "connect" : prev || "sms", { push: false });
+}
+
+function renderSchools() {
+  const q = $("#school-search").value.trim().toLowerCase();
+  const list = SCHOOLS.filter((s) => !q || `${s.name} ${s.lms} ${s.slug}`.toLowerCase().includes(q));
+  $("#schools").innerHTML = list.length ? list.map((s) => `
+    <button class="school" role="listitem" data-slug="${s.slug}" aria-pressed="${state.picked === s.slug}">
+      <span>${s.name}</span><span class="lms">${s.lms}</span><span class="host">${s.host}</span>
+    </button>`).join("") : `<p class="muted small">No match. Only Ontario Brightspace schools for now.</p>`;
+}
+
+function render(name) {
+  const s = state.school, d = data();
+  for (const id of ["lms-name-1", "lms-name-2", "lms-name-3"]) $("#" + id).textContent = s.lms;
+  if (name === "school") renderSchools();
+  if (name === "connect") {
+    $("#connect-h").textContent = `Connect ${s.lms}`;
+    $("#feed-shape").textContent = `https://${s.host}/d2l/le/calendar/feed/user/feed.ics?token=…`;
+  }
+  if (name === "connected") {
+    const total = d.courses.reduce((n, c) => n + c.upcoming, 0);
+    const quiet = d.courses.filter((c) => c.upcoming === 0);
+    $("#found-h").textContent = `Found ${d.courses.length} courses and ${total} upcoming deadlines`;
+    $("#found-sub").textContent = `Next up: ${d.next}.`;
+    $("#courses").innerHTML = d.courses.map((c) => `
+      <div class="course"><span class="code">${c.code}</span><span class="sub">${c.name}</span>
+      ${c.upcoming ? `<span class="pill">${c.upcoming} upcoming</span>` : `<span class="pill warn">No deadlines posted</span>`}</div>`).join("");
+    $("#gap-msg").hidden = !quiet.length;
+    $("#gap-msg").textContent = quiet.length
+      ? `${quiet.map((c) => c.code).join(", ")} ${quiet.length > 1 ? "don't" : "doesn't"} post deadlines to the ${s.lms} calendar. Add ${quiet.length > 1 ? "their" : "its"} course outline${quiet.length > 1 ? "s" : ""} on the next step so nothing slips.` : "";
+  }
+  if (name === "extras") {
+    $("#sender-guess").textContent = `noreply@${s.host}`;
+    const courses = [...d.courses].sort((a, b) => a.upcoming - b.upcoming);
+    $("#syl-courses").innerHTML = courses.map((c) => {
+      const added = state.outlines.has(c.code);
+      return `<div class="course"><span class="code">${c.code}</span>
+        <span class="sub">${added ? "Outline added. You'll get a text if anything needs confirming" : c.upcoming ? "Adds grade weights" : "Recommended: no deadlines in the calendar"}</span>
+        ${added ? `<span class="pill">Added ✓</span>` : `<label class="btn ghost small" style="grid-column:2;grid-row:1/span 2">Upload<input type="file" hidden data-outline="${c.code}" accept=".pdf,.doc,.docx,image/*"></label>`}</div>`;
+    }).join("");
+    $("#syl-pill").textContent = `${state.outlines.size} added`;
+    $("#syl-pill").className = state.outlines.size ? "pill" : "pill off";
+    $("#email-pill").textContent = state.email ? "Set up ✓" : "Not set up";
+    $("#email-pill").className = state.email ? "pill" : "pill off";
+    if (!d.courses.some((c) => c.upcoming === 0)) $("#extra-syllabus").open = false;
+  }
+  if (name === "done") {
+    $("#summary").innerHTML = `
+      <div class="setting"><span>${s.lms} calendar</span><span class="pill">Connected</span></div>
+      <div class="setting"><span>Notification emails</span><span class="pill ${state.email ? "" : "off"}">${state.email ? "Forwarding" : "Later"}</span></div>
+      <div class="setting"><span>Course outlines</span><span class="pill ${state.outlines.size ? "" : "off"}">${state.outlines.size || "Later"}</span></div>
+      <div class="setting"><span>Morning summary</span><span class="pill ${$("#morning").value === "Off" ? "off" : ""}">${$("#morning").value}</span></div>`;
+  }
+  if (name === "sms-end") {
+    const total = d.courses.reduce((n, c) => n + c.upcoming, 0);
+    $("#connected-text").textContent = `Connected ✅ I found ${d.courses.length} courses and ${total} upcoming deadlines.\n\nNext up: ${d.next}.\n\nText me anything, like "what's due this week".`;
+    $("#tomorrow-text").textContent = d.tomorrow;
+    $("#done-text").textContent = d.finished;
+    const morning = $("#morning").value;
+    $("#morning-stamp").hidden = $("#morning-text").hidden = morning === "Off";
+    $("#morning-stamp").textContent = `Tomorrow ${morning}`;
+    $("#morning-text").textContent = d.morning;
+  }
+  if (name === "manage") {
+    $("#m-lms").textContent = `${s.lms} calendar`;
+    $("#m-email").textContent = state.email ? "Forwarding from your school inbox" : "Not set up";
+    $("#m-email-pill").textContent = state.email ? "On" : "Off";
+    $("#m-email-pill").className = state.email ? "pill" : "pill off";
+    $("#m-syl").textContent = state.outlines.size ? [...state.outlines].join(", ") : "None added";
+    const pref = (id) => $(id).value ?? "";
+    const on = (id) => ($(id).checked ? "On" : "Off");
+    $("#m-prefs").innerHTML = `<h3>Texts</h3>
+      <div class="setting"><span>Morning summary</span><span class="pill ${pref("#morning") === "Off" ? "off" : ""}">${pref("#morning")}</span></div>
+      <div class="setting"><span>Heads-up before deadlines</span><span class="pill ${pref("#offset") === "Off" ? "off" : ""}">${pref("#offset")}</span></div>
+      <div class="setting"><span>Change alerts</span><span class="pill ${on("#alerts") === "Off" ? "off" : ""}">${on("#alerts")}</span></div>
+      <div class="setting"><span>Quiet hours</span><span class="pill ${on("#quiet") === "Off" ? "off" : ""}">${on("#quiet")}</span></div>
+      <p class="muted">Change these by text, e.g. "stop morning texts".</p>`;
+  }
+}
+
+function validateFeed(raw, school) {
+  const text = raw.trim();
+  if (!text) return "Paste the link you copied from Subscribe.";
+  let url;
+  try { url = new URL(text); } catch { return "That doesn't look like a link. Copy the whole thing from the Subscribe box, starting with https://"; }
+  if (url.protocol !== "https:") return "The link should start with https://. Copy it again from Subscribe.";
+  const host = url.hostname.toLowerCase();
+  if (host !== school.host && !host.endsWith("." + school.host))
+    return `This link is from ${host}, but ${school.lms} links start with ${school.host}. Check that you copied it from ${school.lms}, or go back and change your school.`;
+  if (!/\/d2l\/le\/calendar\/feed\//.test(url.pathname))
+    return `That's a ${school.lms} link, but not the calendar feed. In Calendar, tap Subscribe and copy that link instead.`;
+  if (!url.searchParams.get("token"))
+    return "The link is missing its private token at the end. Copy the full link from the Subscribe box.";
+  return null;
+}
+
+// --- wiring -------------------------------------------------------------------------
+document.addEventListener("click", (e) => {
+  const goBtn = e.target.closest("[data-go]");
+  if (goBtn) { e.preventDefault(); go(goBtn.dataset.go); return; }
+  const sch = e.target.closest(".school");
+  if (sch) {
+    state.picked = sch.dataset.slug;
+    renderSchools();
+    $("#school-next").disabled = false;
+  }
+});
+$("#back").addEventListener("click", back);
+$("#consent").addEventListener("change", (e) => { $("#welcome-next").disabled = !e.target.checked; });
+$("#welcome-next").addEventListener("click", () => go("school"));
+$("#school-search").addEventListener("input", renderSchools);
+$("#school-next").addEventListener("click", () => {
+  const picked = SCHOOLS.find((s) => s.slug === state.picked);
+  if (picked) { state.school = picked; $("#feed").value = ""; $("#feed-error").hidden = true; go("connect"); }
+});
+$("#use-example").addEventListener("click", () => {
+  $("#feed").value = `https://${state.school.host}/d2l/le/calendar/feed/user/feed.ics?token=EXAMPLE-not-a-real-token`;
+  $("#feed-error").hidden = true;
+});
+$("#connect-btn").addEventListener("click", () => {
+  const err = validateFeed($("#feed").value, state.school);
+  $("#feed-error").hidden = !err;
+  $("#feed-error").textContent = err || "";
+  if (err) return;
+  state.feedOk = true;
+  go("connecting");
+  setTimeout(() => { if (state.screen === "connecting") go("connected"); }, 1400);
+});
+$("#copy-fwd").addEventListener("click", async () => {
+  const addr = $("#fwd-addr").textContent;
+  try { await navigator.clipboard.writeText(addr); $("#copy-fwd").textContent = "Copied"; }
+  catch { const r = document.createRange(); r.selectNodeContents($("#fwd-addr")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); $("#copy-fwd").textContent = "Selected"; }
+  setTimeout(() => { $("#copy-fwd").textContent = "Copy"; }, 1600);
+});
+$("#email-done").addEventListener("change", (e) => { state.email = e.target.checked; render("extras"); });
+document.addEventListener("change", (e) => {
+  const input = e.target.closest("[data-outline]");
+  if (input && input.files && input.files.length) { state.outlines.add(input.dataset.outline); render("extras"); }
+});
+$("#delete-confirm").addEventListener("input", (e) => { $("#delete-btn").disabled = e.target.value.trim() !== "DELETE"; });
+$("#delete-btn").addEventListener("click", () => { $("#delete-panel").hidden = true; $("#deleted-msg").hidden = false; });
+$("#disconnect").addEventListener("click", (e) => {
+  const b = e.target;
+  if (b.dataset.armed) { $("#m-sync").textContent = "Disconnected. Text \"connect\" to add it back"; b.hidden = true; return; }
+  b.dataset.armed = "1"; b.textContent = "Tap again to confirm"; b.classList.remove("ghost"); b.classList.add("danger");
+});
+
+$("#jump").innerHTML = JUMP.map(([to, label]) => `<button data-to="${to}">${label}</button>`).join("");
+$("#jump").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-to]");
+  if (b) { state.history = []; go(b.dataset.to, { push: false }); }
+});
+go("sms", { push: false });
+</script>
