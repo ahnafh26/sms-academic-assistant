@@ -89,5 +89,5 @@ def test_model_from_settings():
     s = lambda **kw: SimpleNamespace(**{"llm_provider": "gemini", "llm_api_key": None, "llm_model": None, "llm_base_url": None, **kw})
     assert model_from_settings(s()) is None
     assert model_from_settings(s(llm_api_key="paste-your-key-here")) is None
-    assert model_from_settings(s(llm_api_key="k")).model == "gemini-2.5-flash"
+    assert model_from_settings(s(llm_api_key="k")).model == "gemini-flash-lite-latest"
     assert model_from_settings(s(llm_provider="ollama")).model == "qwen2.5:7b"
