@@ -69,8 +69,10 @@ def run_sync(session: Session, connection: LmsConnection, *, trigger: str = "sch
     session.add(run)
     connection.last_sync_at = now
 
+    # all of the student's calendar rows, not just this connection's: reconnecting with a new
+    # link (e.g. after a token reset) must adopt existing rows, not duplicate them
     existing = list(session.scalars(select(AcademicItem).where(
-        AcademicItem.user_id == connection.user_id, AcademicItem.connection_id == connection.id)))
+        AcademicItem.user_id == connection.user_id, AcademicItem.source == "brightspace_calendar")))
     try:
         body = fetcher(decrypt(connection.encrypted_secret), inst)
         events = parse_ics(body).events
@@ -97,7 +99,7 @@ def run_sync(session: Session, connection: LmsConnection, *, trigger: str = "sch
         old_when, was_actionable = row.when, row.actionable
         for key, value in values.items():
             setattr(row, key, value)
-        row.external_source_id = n.external_source_id
+        row.external_source_id, row.connection_id = n.external_source_id, connection.id
         row.last_seen_at, row.missing_since, row.missed_syncs = now, None, 0
         if was_actionable and row.actionable and row.when != old_when:
             result.moved.append((row, old_when))

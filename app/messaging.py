@@ -39,7 +39,6 @@ def send_text(session: Session, user: User, body: str) -> Message | None:
             msg.status = "sent"
         except Exception as exc:  # delivery failure must not lose the conversation state
             msg.status = "failed"
-            msg.body = body
             session.flush()
             raise RuntimeError(f"text delivery failed: {exc}") from None
     session.flush()
