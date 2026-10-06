@@ -52,7 +52,8 @@ def make_engine(url: str | None = None) -> Engine:
         if url in ("sqlite://", "sqlite:///:memory:"):
             return create_engine(url, connect_args={"check_same_thread": False}, poolclass=StaticPool)
         DATA_DIR.mkdir(parents=True, exist_ok=True)
-        return create_engine(url, connect_args={"check_same_thread": False})
+        # the dev server and the fake phone write from different threads; wait instead of failing on a lock
+        return create_engine(url, connect_args={"check_same_thread": False, "timeout": 15})
     return create_engine(url, pool_pre_ping=True)
 
 
