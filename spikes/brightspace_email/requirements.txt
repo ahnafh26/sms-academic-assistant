@@ -1,0 +1,4 @@
+# Phase 0b spike only.
+pyyaml>=6.0
+tzdata>=2025.1   # zoneinfo has no tz database on Windows
+pytest>=8.0

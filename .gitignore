@@ -26,3 +26,6 @@ desktop.ini
 
 # Prototype local state (completion marks, estimates)
 prototype/state.json
+
+# Email spike real emails and outputs
+spikes/brightspace_email/data/
