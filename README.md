@@ -11,4 +11,5 @@ The assistant is built on a reliable academic data layer (LMS feeds, syllabi, an
 **Phase 0: Brightspace iCal viability spike.** We're testing whether Brightspace calendar feeds from Ontario universities expose enough reliable data (courses, deadlines, stable IDs) to drive the product without university partnerships.
 
 - Architecture: [docs/architecture.md](docs/architecture.md)
-- Spike: `spikes/brightspace_ical/` (in progress)
+- Spike: `spikes/brightspace_ical/` (daily snapshots + auto-analysis)
+- Local chat prototype: [prototype/](prototype/README.md). Chat with the assistant on your real deadlines (free LLM)
