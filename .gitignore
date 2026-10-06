@@ -23,3 +23,6 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Prototype local state (completion marks, estimates)
+prototype/state.json
