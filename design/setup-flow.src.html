@@ -1,0 +1,742 @@
+<title>Assistant Setup Flow</title>
+<style>
+/* Layout: an iPhone-style screen of stacked white cards on soft grey (after the fitness-app reference):
+   bold black type, black pill actions, grey chips, one green status pill. Desktop adds a device bezel
+   and a reviewer rail; on a real phone the screen fills the width. */
+:root {
+  --bg: #f2f2f5;
+  --card: #ffffff;
+  --ink: #111114;
+  --muted: #8b8b93;
+  --line: #e7e7ec;
+  --chip: #eeeef2;
+  --primary: #1c1c1f;
+  --primary-ink: #ffffff;
+  --good: #1e9e57;
+  --good-soft: #e2f6ea;
+  --warn: #a86400;
+  --warn-soft: #fcf0da;
+  --bad: #c42b2b;
+  --bad-soft: #fde8e7;
+  --cell-0: #ececf0;
+  --cell-1: #b9b9c1;
+  --cell-2: #1c1c1f;
+  --bezel: #0b0b0d;
+  --shadow: 0 1px 2px rgba(17, 17, 20, .04), 0 10px 28px -16px rgba(17, 17, 20, .18);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --r-card: 24px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --card: #1c1c1e; --ink: #f4f4f6; --muted: #9a9aa2; --line: #2c2c30; --chip: #2a2a2e;
+    --primary: #f4f4f6; --primary-ink: #111114; --good: #3ccf7a; --good-soft: #10301d; --warn: #f1b45a;
+    --warn-soft: #36270e; --bad: #ff8a85; --bad-soft: #3a1616; --cell-0: #2a2a2e; --cell-1: #5c5c64;
+    --cell-2: #f4f4f6; --bezel: #2a2a2e; --shadow: 0 1px 0 rgba(255,255,255,.03); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --card: #1c1c1e; --ink: #f4f4f6; --muted: #9a9aa2; --line: #2c2c30; --chip: #2a2a2e;
+  --primary: #f4f4f6; --primary-ink: #111114; --good: #3ccf7a; --good-soft: #10301d; --warn: #f1b45a;
+  --warn-soft: #36270e; --bad: #ff8a85; --bad-soft: #3a1616; --cell-0: #2a2a2e; --cell-1: #5c5c64;
+  --cell-2: #f4f4f6; --bezel: #2a2a2e; --shadow: 0 1px 0 rgba(255,255,255,.03); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.45; padding-inline: 16px; padding-block: 20px 48px; -webkit-font-smoothing: antialiased; }
+.layout { display: flex; gap: 36px; justify-content: center; align-items: flex-start; }
+.device { width: 100%; max-width: 410px; min-width: 0; }
+.screenwrap { background: var(--bg); min-width: 0; }
+.statusbar { display: none; }
+@media (min-width: 761px) {
+  body { background: var(--chip); }
+  .device { background: var(--bezel); border-radius: 56px; padding: 11px; box-shadow: 0 30px 70px -30px rgba(0,0,0,.45); }
+  .screenwrap { border-radius: 46px; overflow: hidden; min-height: 820px; }
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 30px 6px; font-weight: 600; font-size: .95rem; font-variant-numeric: tabular-nums; position: relative; }
+  .island { position: absolute; left: 50%; top: 11px; transform: translateX(-50%); width: 118px; height: 33px; background: #000; border-radius: 20px; }
+  .bars { display: flex; gap: 5px; align-items: center; }
+}
+.rail { width: 270px; flex: none; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); }
+@media (max-width: 760px) { .rail { display: none; } }
+
+h1, h2 { margin: 0; font-weight: 800; letter-spacing: -0.025em; line-height: 1.08; text-wrap: balance; }
+h1 { font-size: 2.05rem; }
+h2 { font-size: 1.6rem; }
+h3 { margin: 0; font-size: 1rem; font-weight: 650; letter-spacing: -0.01em; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+.tiny { font-size: .78rem; }
+.eyebrow { font-size: .8rem; color: var(--muted); font-weight: 500; }
+.num { font-variant-numeric: tabular-nums; }
+svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* chrome */
+.topbar { display: flex; align-items: center; gap: 8px; padding: 6px 14px 4px; min-height: 44px; }
+.topbar .title { flex: 1; text-align: center; font-weight: 650; margin-right: 44px; }
+.round { width: 44px; height: 36px; border: 0; border-radius: 999px; background: var(--card); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow); }
+.progress { display: flex; gap: 6px; padding: 8px 18px 2px; }
+.progress span { flex: 1; height: 5px; border-radius: 5px; background: var(--cell-0); }
+.progress span.on { background: var(--primary); }
+
+.screen { padding: 12px 14px 28px; display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--card); border-radius: var(--r-card); padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.flat { box-shadow: none; border: 1.5px dashed var(--line); background: transparent; }
+.row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.between { justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--chip); border-radius: 999px; padding: 6px 12px; font-size: .85rem; font-weight: 550; }
+.chip svg.i { width: 15px; height: 15px; }
+.status { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 11px; font-size: .8rem; font-weight: 600; background: var(--good-soft); color: var(--good); white-space: nowrap; }
+.status svg.i { width: 15px; height: 15px; }
+.status.warn { background: var(--warn-soft); color: var(--warn); }
+.status.off { background: var(--chip); color: var(--muted); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; border: 0; border-radius: 999px; background: var(--primary); color: var(--primary-ink); font: 650 1rem var(--font); cursor: pointer; padding: 0 22px; text-decoration: none; }
+.btn:hover { opacity: .92; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.btn.soft { background: var(--chip); color: var(--ink); }
+.btn.danger { background: var(--bad); color: #fff; }
+.btn.sm { width: auto; min-height: 36px; font-size: .85rem; padding: 0 14px; gap: 6px; }
+.linkbtn { background: none; border: 0; padding: 0; color: inherit; font: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--good); outline-offset: 2px; }
+
+/* lists */
+.ticks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.ticks li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: center; font-size: .93rem; }
+.ticks .ic { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--chip); }
+.ticks .ic svg.i { width: 16px; height: 16px; }
+.ticks .ic.no { background: var(--bad-soft); color: var(--bad); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; counter-increment: s; align-items: start; font-size: .93rem; }
+.steps li::before { content: counter(s); width: 30px; height: 30px; border-radius: 10px; background: var(--chip); display: grid; place-items: center; font-weight: 700; font-size: .85rem; }
+.steps li > div { min-width: 0; padding-top: 4px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+
+/* stat tiles */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tile { background: var(--card); border-radius: 20px; padding: 14px 10px 12px; box-shadow: var(--shadow); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.tile .ic { color: var(--muted); margin-bottom: 4px; }
+.tile .big { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tile .lbl { font-size: .8rem; color: var(--muted); }
+
+/* 14-day grid */
+.grid14 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+.cell { aspect-ratio: 1.55; border-radius: 9px; background: var(--cell-0); max-width: 100%; }
+.cell.c1 { background: var(--cell-1); }
+.cell.c2 { background: var(--cell-2); }
+.cell.today { outline: 2px solid var(--good); outline-offset: 2px; }
+.cell.empty { background: transparent; border: 1.5px dashed var(--line); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: .75rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 12px; height: 9px; border-radius: 3px; display: inline-block; background: var(--cell-0); }
+
+/* logos */
+.logo { width: 44px; height: 44px; border-radius: 13px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; flex: none; overflow: hidden; }
+.logo img { width: 34px; height: 34px; object-fit: contain; }
+.logo.mono { color: #fff; font-weight: 800; font-size: .95rem; letter-spacing: -0.03em; border: 0; }
+.logo.lg { width: 56px; height: 56px; border-radius: 16px; }
+.logo.lg img { width: 44px; height: 44px; }
+
+/* school list */
+.field { width: 100%; min-height: 48px; border: 0; border-radius: 14px; padding: 12px 16px; font: 1rem var(--font); background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+textarea.field { min-height: 88px; resize: vertical; font: .82rem var(--mono); }
+.schools { display: flex; flex-direction: column; gap: 8px; }
+.school { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px 10px 10px; border: 0; border-radius: 20px; background: var(--card); color: var(--ink); font: inherit; cursor: pointer; text-align: left; box-shadow: var(--shadow); }
+.school .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.school .name { font-weight: 650; }
+.school .lms { font-size: .8rem; color: var(--muted); }
+.school .pick { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); flex: none; display: grid; place-items: center; color: var(--primary-ink); }
+.school[aria-pressed="true"] { outline: 2px solid var(--primary); }
+.school[aria-pressed="true"] .pick { background: var(--primary); border-color: var(--primary); }
+
+/* messages */
+.thread { padding: 6px 14px 26px; display: flex; flex-direction: column; gap: 7px; }
+.contact { text-align: center; padding: 10px 0 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: var(--primary-ink); display: grid; place-items: center; font-weight: 800; font-size: 1.3rem; }
+.bubble { max-width: 80%; padding: 9px 14px; border-radius: 20px; font-size: .95rem; white-space: pre-line; }
+.bubble.them { background: var(--card); align-self: flex-start; border-bottom-left-radius: 6px; box-shadow: var(--shadow); }
+.bubble.me { background: var(--primary); color: var(--primary-ink); align-self: flex-end; border-bottom-right-radius: 6px; }
+.stamp { text-align: center; font-size: .75rem; color: var(--muted); margin: 6px 0; }
+
+/* course rows, settings rows */
+.list { display: flex; flex-direction: column; }
+.item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); min-width: 0; }
+.item:first-child { border-top: 0; padding-top: 2px; }
+.item:last-child { padding-bottom: 2px; }
+.item .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.item .t { font-weight: 650; font-variant-numeric: tabular-nums; }
+.item .s { font-size: .8rem; color: var(--muted); }
+.switch { position: relative; width: 51px; height: 31px; flex: none; }
+.switch input { opacity: 0; position: absolute; inset: 0; margin: 0; cursor: pointer; width: 100%; height: 100%; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--cell-0); transition: background .15s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.2); transition: transform .15s; }
+.switch input:checked + span { background: var(--primary); }
+.switch input:checked + span::after { transform: translateX(20px); background: var(--card); }
+:root[data-theme="dark"] .switch input:checked + span::after { background: #111114; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .switch input:checked + span::after { background: #111114; } }
+.switch input:focus-visible + span { outline: 3px solid var(--good); outline-offset: 2px; }
+select.sel { border: 0; background: var(--chip); color: var(--ink); border-radius: 999px; padding: 8px 12px; font: 600 .85rem var(--font); }
+.check { display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start; font-size: .9rem; cursor: pointer; }
+.check input { width: 22px; height: 22px; margin: 0; accent-color: var(--primary); }
+
+.msg { border-radius: 16px; padding: 12px 14px; font-size: .88rem; }
+.msg.bad { background: var(--bad-soft); color: var(--bad); }
+.msg.warn { background: var(--warn-soft); color: var(--warn); }
+.spinner { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--cell-0); border-top-color: var(--primary); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+details.more summary { cursor: pointer; list-style: none; font-weight: 650; font-size: .9rem; display: flex; justify-content: space-between; align-items: center; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more[open] summary svg { transform: rotate(90deg); }
+details.more .body { padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.copyrow { display: flex; align-items: center; gap: 8px; background: var(--chip); border-radius: 14px; padding: 8px 8px 8px 12px; }
+.copyrow .mono { flex: 1; min-width: 0; font: .8rem var(--mono); word-break: break-all; }
+
+/* reviewer rail */
+.rail .note { background: var(--card); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow); }
+.rail nav { margin-top: 14px; display: flex; flex-direction: column; gap: 2px; }
+.rail nav button { text-align: left; background: none; border: 0; padding: 8px 12px; border-radius: 12px; color: var(--ink); font: .9rem var(--font); cursor: pointer; }
+.rail nav button:hover { background: var(--card); }
+.rail nav button.on { background: var(--card); font-weight: 650; box-shadow: var(--shadow); }
+.mobile-note { max-width: 410px; margin: 0 auto 10px; font-size: .78rem; color: var(--muted); text-align: center; }
+@media (min-width: 761px) { .mobile-note { display: none; } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .switch span, .switch span::after { transition: none; } }
+</style>
+
+<p class="mobile-note">Clickable mockup. Nothing you type is saved or sent anywhere.</p>
+<div class="layout">
+  <div class="device">
+    <main class="screenwrap" aria-live="polite">
+      <div class="statusbar" aria-hidden="true"><span>9:41</span><span class="island"></span>
+        <span class="bars"><svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5" width="3" height="7" rx="1" fill="currentColor"/><rect x="10" y="2" width="3" height="10" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12"><rect x=".5" y=".5" width="21" height="11" rx="3.5" stroke="currentColor" fill="none" opacity=".5"/><rect x="2" y="2" width="16" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".5"/></svg></span>
+      </div>
+
+      <div id="chrome" hidden>
+        <div class="topbar">
+          <button class="round" id="back" aria-label="Back"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="title" id="screen-title">Setup</div>
+        </div>
+        <div class="progress" id="progress" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+
+      <!-- 0 · the text that starts it -->
+      <section data-screen="sms" class="thread">
+        <div class="contact"><div class="avatar">A</div><strong>Assistant</strong><span class="tiny muted num">(519) 555-0142</span></div>
+        <div class="stamp">Today 7:41 PM</div>
+        <div class="bubble me">hi</div>
+        <div class="bubble them">Hey 👋 I'm your school assistant. Connect your courses once, then text me anything: what's due, what's next, "I finished econ".</div>
+        <div class="bubble them">Tap to set up (2 min):
+<button class="linkbtn" data-go="welcome">setup.example.ca/s/x7Kp2</button></div>
+      </section>
+
+      <!-- 1 · welcome + consent -->
+      <section data-screen="welcome" class="screen" hidden>
+        <div class="card">
+          <div class="row between"><span class="eyebrow">Setup</span><span class="status"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>2 min</span></div>
+          <h1>Connect your school once.</h1>
+          <p class="muted">Then just text. This page only handles the connection; everything else happens in your messages.</p>
+          <div class="chips"><span class="chip"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Deadlines</span><span class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l9 8h-3v9H6v-9H3z"/></svg>One number</span><span class="chip"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>No passwords</span></div>
+        </div>
+        <div class="card">
+          <h3>What it can see</h3>
+          <ul class="ticks">
+            <li><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/></svg></span><span>Deadlines, quizzes and exams from Brightspace</span></li>
+            <li><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg></span><span>Anything you send it: outlines, grades, "this will take 3 hours"</span></li>
+          </ul>
+          <h3 style="margin-top:4px">What it never does</h3>
+          <ul class="ticks">
+            <li><span class="ic no"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Ask for or store your university password</span></li>
+            <li><span class="ic no"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Submit, post or change anything in Brightspace</span></li>
+            <li><span class="ic no"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Share your data with your school, profs or anyone</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <label class="check"><input type="checkbox" id="consent"><span>I agree to the <span class="linkbtn">terms</span> and <span class="linkbtn">privacy policy</span> and to get texts from this number. Text STOP anytime.</span></label>
+          <button class="btn" id="welcome-next" disabled>Get started<svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </section>
+
+      <!-- 2 · school -->
+      <section data-screen="school" class="screen" hidden>
+        <div style="padding: 6px 4px 2px"><h2>Your school</h2><p class="muted small" style="margin-top:6px">Ontario schools on Brightspace.</p></div>
+        <input class="field" id="school-search" type="search" placeholder="Search schools" autocomplete="off" aria-label="Search schools">
+        <div class="schools" id="schools" role="list"></div>
+        <button class="btn" id="school-next" disabled>Continue</button>
+      </section>
+
+      <!-- 3 · connect -->
+      <section data-screen="connect" class="screen" hidden>
+        <div id="onetap" class="stack" style="display:flex; flex-direction:column; gap:12px">
+          <div class="card">
+            <div class="row"><span id="connect-logo"></span><div class="txt"><span class="eyebrow" id="connect-school"></span><h2 id="connect-h" style="font-size:1.45rem">Connect</h2></div></div>
+            <p class="muted small">One tap. You sign in on <span id="lms-name-1">Brightspace</span>'s own page, then come straight back.</p>
+          </div>
+          <div class="tiles">
+            <div class="tile"><svg class="i ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="lbl">Deadlines</span></div>
+            <div class="tile"><svg class="i ic" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg><span class="lbl">Submissions</span></div>
+            <div class="tile"><svg class="i ic" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg><span class="lbl">Grades</span></div>
+          </div>
+          <div class="card">
+            <button class="btn" id="oauth-btn"><svg class="i" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Connect with <span id="lms-name-2">Brightspace</span></button>
+            <p class="tiny muted" style="text-align:center">Read-only. Your password goes to your school, never here. Disconnect anytime.</p>
+          </div>
+        </div>
+
+        <div id="fallback" style="display:flex; flex-direction:column; gap:12px" hidden>
+          <div class="card">
+            <div class="row"><span id="fallback-logo"></span><div class="txt"><span class="eyebrow">3 taps</span><h2 id="fallback-h" style="font-size:1.45rem">Connect</h2></div></div>
+            <p class="muted small"><span id="lms-name-4">Brightspace</span> one-tap connect isn't on at your school yet, so this uses your calendar link.</p>
+          </div>
+          <div class="card">
+            <ol class="steps">
+              <li><div><a class="btn soft sm" id="open-cal" href="#" target="_blank" rel="noopener">Open my <span id="lms-name-5">Brightspace</span> calendar<svg class="i" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div></li>
+              <li><div><span>Tap <strong>Subscribe</strong>, then <strong>Copy</strong>.</span><span class="tiny muted">No Subscribe button? Calendar Settings → Enable Calendar Feeds.</span></div></li>
+              <li><div><span>Come back and tap the button below.</span></div></li>
+            </ol>
+            <button class="btn" id="paste-btn"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></svg>Paste and connect</button>
+            <div id="feed-error" class="msg bad" hidden></div>
+            <details class="more"><summary>Paste didn't work?<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+              <div class="body">
+                <textarea class="field" id="feed" placeholder="https://…/d2l/le/calendar/feed/user/feed.ics?token=…" spellcheck="false" aria-label="Calendar link"></textarea>
+                <button class="btn soft" id="connect-btn">Connect</button>
+              </div>
+            </details>
+          </div>
+          <p class="tiny muted" style="text-align:center; padding: 0 12px">Or skip this page: paste the link into your text thread with the assistant.</p>
+        </div>
+      </section>
+
+      <!-- 3a · school-side sign-in (illustration) -->
+      <section data-screen="oauth" class="screen" hidden>
+        <p class="eyebrow" style="padding: 0 4px">Illustration · this part happens on your school's site</p>
+        <div class="card flat">
+          <div class="chip" style="align-self:flex-start"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span id="oauth-host" class="num">brightspace</span></div>
+          <div><h3>1 · Sign in to <span id="lms-name-6">Brightspace</span> as usual</h3><p class="small muted" style="margin-top:4px">Two-factor included. Skipped if you're already signed in on this phone.</p></div>
+          <div class="card" style="gap:10px">
+            <h3>2 · Your school asks</h3>
+            <p class="small"><strong>Assistant</strong> wants to see:</p>
+            <div class="chips"><span class="chip">Calendar &amp; due dates</span><span class="chip">Submissions</span><span class="chip">Grades</span></div>
+            <p class="tiny muted">Read-only. It can't submit, post or change anything.</p>
+          </div>
+        </div>
+        <button class="btn" id="allow-btn">Allow</button>
+        <button class="btn soft" data-go="connect">Cancel</button>
+      </section>
+
+      <!-- connecting -->
+      <section data-screen="connecting" class="screen" hidden>
+        <div class="card" style="align-items:center; text-align:center; padding: 46px 18px">
+          <div class="spinner" aria-hidden="true"></div>
+          <h2 id="connecting-h" style="font-size:1.35rem">Reading your calendar…</h2>
+          <p class="muted small">Finding courses and deadlines, and filtering out old and non-course events.</p>
+        </div>
+      </section>
+
+      <!-- connected -->
+      <section data-screen="connected" class="screen" hidden>
+        <div class="card">
+          <div class="row between"><span class="eyebrow" id="found-src">LEARN</span><span class="status"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Connected</span></div>
+          <h1 id="found-h">4 courses</h1>
+          <p class="muted small" id="found-sub"></p>
+          <div class="chips" id="found-chips"></div>
+        </div>
+        <div class="tiles" id="found-tiles"></div>
+        <div class="card">
+          <div class="row between"><h3>Next 14 days</h3><span class="tiny muted num" id="grid-note"></span></div>
+          <div class="grid14" id="grid14"></div>
+          <div class="legend"><span><i></i>Free</span><span><i style="background:var(--cell-1)"></i>1 due</span><span><i style="background:var(--cell-2)"></i>2+ due</span><span><i style="outline:2px solid var(--good); background:transparent"></i>Today</span></div>
+        </div>
+        <div class="card"><h3>Courses</h3><div class="list" id="courses"></div></div>
+        <div id="gap-msg" class="msg warn" hidden></div>
+        <p class="tiny muted" style="text-align:center">Example results based on real LEARN and MyLearningSpace feeds.</p>
+        <button class="btn" data-go="extras">Continue</button>
+      </section>
+
+      <!-- 4 · extras -->
+      <section data-screen="extras" class="screen" hidden>
+        <div style="padding: 6px 4px 2px"><h2>Fill the gaps</h2><p class="muted small" style="margin-top:6px">Optional. Both can be done later by text.</p></div>
+        <div class="card">
+          <div class="row between"><h3>Brightspace emails</h3><span class="status off" id="email-pill">Not set up</span></div>
+          <p class="small muted" id="email-help">Grades released, announcements, extensions</p>
+          <details class="more"><summary>How to set it up<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+            <div class="body small">
+              <ol class="steps">
+                <li><div><span>In <strong id="lms-name-3">Brightspace</strong>: your name → Notifications → email for grades, announcements, due soon.</span></div></li>
+                <li><div><span>In Outlook, add a rule: from <span class="mono" id="sender-guess" style="font:.8rem var(--mono)">noreply@…</span> → forward to</span></div></li>
+              </ol>
+              <div class="copyrow"><span class="mono" id="fwd-addr">u-7kq2x9@in.example.ca</span><button class="btn sm" id="copy-fwd">Copy</button></div>
+              <label class="check"><input type="checkbox" id="email-done"><span>I've set up the rule</span></label>
+            </div>
+          </details>
+        </div>
+        <div class="card">
+          <div class="row between"><h3>Course outlines</h3><span class="status off" id="syl-pill">0 added</span></div>
+          <p class="small muted">Grade weights, plus deadlines that aren't in the calendar.</p>
+          <div class="list" id="syl-courses"></div>
+        </div>
+        <button class="btn" data-go="prefs">Continue</button>
+        <button class="btn soft" data-go="prefs">Skip for now</button>
+      </section>
+
+      <!-- 5 · texts -->
+      <section data-screen="prefs" class="screen" hidden>
+        <div style="padding: 6px 4px 2px"><h2>Your texts</h2><p class="muted small" style="margin-top:6px">Change any of this later by texting, like "send my morning text at 9".</p></div>
+        <div class="card">
+          <div class="list">
+            <div class="item"><div class="txt"><span class="t">Morning summary</span><span class="s">Today and tomorrow</span></div>
+              <select class="sel" id="morning" aria-label="Morning summary"><option>Off</option><option>7:00 AM</option><option selected>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option></select></div>
+            <div class="item"><div class="txt"><span class="t">Heads-up</span><span class="s">Before anything not marked done</span></div>
+              <select class="sel" id="offset" aria-label="Heads-up timing"><option>Off</option><option>1 hr before</option><option selected>3 hrs before</option><option>1 day before</option></select></div>
+            <div class="item"><div class="txt"><span class="t">Change alerts</span><span class="s">A deadline moves or something new is posted</span></div>
+              <label class="switch"><input type="checkbox" id="alerts" checked aria-label="Change alerts"><span></span></label></div>
+            <div class="item"><div class="txt"><span class="t">Sunday preview</span><span class="s">Next week's deadlines and exams</span></div>
+              <label class="switch"><input type="checkbox" id="weekly" checked aria-label="Sunday preview"><span></span></label></div>
+            <div class="item"><div class="txt"><span class="t">Quiet hours</span><span class="s">No automatic texts 11 PM – 7 AM</span></div>
+              <label class="switch"><input type="checkbox" id="quiet" checked aria-label="Quiet hours"><span></span></label></div>
+          </div>
+        </div>
+        <button class="btn" data-go="done">Finish</button>
+      </section>
+
+      <!-- done -->
+      <section data-screen="done" class="screen" hidden>
+        <div class="card">
+          <div class="row between"><span class="eyebrow">Today</span><span class="status"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Completed</span></div>
+          <h1>You're set</h1>
+          <p class="muted small">Everything from here happens by text.</p>
+          <div class="chips" id="summary"></div>
+          <button class="btn" data-go="sms-end"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Back to Messages</button>
+        </div>
+        <p class="tiny muted" style="text-align:center">Text <strong>MANAGE</strong> anytime for your settings. <button class="linkbtn" data-go="manage">Preview it</button></p>
+      </section>
+
+      <!-- back in messages -->
+      <section data-screen="sms-end" class="thread" hidden>
+        <div class="contact"><div class="avatar">A</div><strong>Assistant</strong><span class="tiny muted num">(519) 555-0142</span></div>
+        <div class="stamp">Today 7:44 PM</div>
+        <div class="bubble them" id="connected-text"></div>
+        <div class="bubble me">what's due tomorrow</div>
+        <div class="bubble them" id="tomorrow-text"></div>
+        <div class="bubble me">I finished econ</div>
+        <div class="bubble them" id="done-text"></div>
+        <div class="stamp" id="morning-stamp">Tomorrow 8:00 AM</div>
+        <div class="bubble them" id="morning-text"></div>
+        <button class="btn soft" data-go="manage" style="margin-top:14px">Preview the MANAGE page</button>
+      </section>
+
+      <!-- manage -->
+      <section data-screen="manage" class="screen" hidden>
+        <div class="card">
+          <div class="row"><span id="manage-logo"></span><div class="txt"><span class="eyebrow">Your account</span><h2 style="font-size:1.45rem">Settings</h2></div></div>
+          <p class="tiny muted">Opened from a one-time link texted to <span class="num">(•••) •••-0187</span>. Expires in 30 min.</p>
+        </div>
+        <div class="card">
+          <h3>Connected</h3>
+          <div class="list">
+            <div class="item"><div class="txt"><span class="t" id="m-lms">Brightspace</span><span class="s" id="m-sync">Checked 12 min ago</span></div><button class="btn soft sm" id="disconnect">Disconnect</button></div>
+            <div class="item"><div class="txt"><span class="t">Brightspace emails</span><span class="s" id="m-email">Not set up</span></div><span class="status off" id="m-email-pill">Off</span></div>
+            <div class="item"><div class="txt"><span class="t">Course outlines</span><span class="s" id="m-syl">None added</span></div><button class="btn soft sm" data-go="extras">Add</button></div>
+          </div>
+        </div>
+        <div class="card"><h3>Texts</h3><div class="list" id="m-prefs"></div><p class="tiny muted">Change these by text, like "stop morning texts".</p></div>
+        <div class="card" id="delete-panel">
+          <h3>Delete account</h3>
+          <p class="small muted">Removes your courses, deadlines, outlines, grades and messages. This can't be undone.</p>
+          <label class="small" for="delete-confirm">Type <strong>DELETE</strong> to confirm</label>
+          <input class="field" id="delete-confirm" autocomplete="off" style="box-shadow:none; background:var(--chip)">
+          <button class="btn danger" id="delete-btn" disabled>Delete everything</button>
+        </div>
+        <div class="msg warn" id="deleted-msg" hidden>Account deleted. You'll get one last text confirming it. Text "hi" to start over.</div>
+      </section>
+    </main>
+  </div>
+
+  <aside class="rail">
+    <div class="note small">
+      <strong>Clickable mockup</strong>
+      <span class="muted">The setup a student sees after texting the number. Nothing you type is saved or sent. Try a wrong link in the 3-tap path to see the errors.</span>
+    </div>
+    <div class="note small" style="margin-top:12px">
+      <label class="check"><input type="checkbox" id="onetap-toggle" checked><span><strong>School approved one-tap</strong></span></label>
+      <span class="muted">One-tap uses Brightspace's official sign-in and needs each school to approve the app. None has yet; untick to see today's 3-tap fallback.</span>
+    </div>
+    <nav id="jump" aria-label="Jump to screen"></nav>
+  </aside>
+</div>
+
+<script>
+// Logos: favicons via Google's favicon service / school sites, embedded so the page needs no external images.
+// McMaster, Western and uOttawa had no usable icon, so they use a monogram in school colours.
+const LOGOS = __LOGOS__;
+const SCHOOLS = [
+  // rootOu: the school's top org unit, seen in real feed UIDs ("6606-…@learn.uwaterloo.ca")
+  { slug: "waterloo", name: "University of Waterloo", lms: "LEARN", host: "learn.uwaterloo.ca", rootOu: 6606 },
+  { slug: "laurier", name: "Wilfrid Laurier University", lms: "MyLearningSpace", host: "mylearningspace.wlu.ca", rootOu: 6605 },
+  { slug: "tmu", name: "Toronto Metropolitan University", lms: "D2L Brightspace", host: "courses.torontomu.ca" },
+  { slug: "mcmaster", name: "McMaster University", lms: "Avenue to Learn", host: "avenue.cllmcmaster.ca", mono: "Mac", color: "#7A003C" },
+  { slug: "queens", name: "Queen's University", lms: "onQ", host: "onq.queensu.ca" },
+  { slug: "western", name: "Western University", lms: "OWL Brightspace", host: "westernu.brightspace.com", mono: "W", color: "#4F2683" },
+  { slug: "guelph", name: "University of Guelph", lms: "CourseLink", host: "courselink.uoguelph.ca" },
+  { slug: "brock", name: "Brock University", lms: "Brightspace", host: "brightspace.brocku.ca" },
+  { slug: "carleton", name: "Carleton University", lms: "Brightspace", host: "brightspace.carleton.ca" },
+  { slug: "uottawa", name: "University of Ottawa", lms: "Brightspace", host: "uottawa.brightspace.com", mono: "uO", color: "#8F001A" },
+  { slug: "windsor", name: "University of Windsor", lms: "Brightspace", host: "brightspace.uwindsor.ca" },
+  { slug: "lakehead", name: "Lakehead University", lms: "myCourseLink", host: "mycourselink.lakeheadu.ca" },
+  { slug: "laurentian", name: "Laurentian University", lms: "D2L", host: "learn.laurentian.ca" },
+];
+
+// Example results shaped like the real first-fetch findings (spikes/brightspace_ical/findings). days = deadlines per day, next 14 days.
+const EXAMPLES = {
+  waterloo: {
+    courses: [
+      { code: "MATH 135", name: "Algebra for Honours Mathematics", upcoming: 4 },
+      { code: "CS 115", name: "Introduction to Computer Science 1", upcoming: 0 },
+      { code: "MATH 137", name: "Calculus 1 for Honours Mathematics", upcoming: 0 },
+      { code: "MTHEL 99", name: "Math Elements", upcoming: 0 },
+    ],
+    days: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], week: 0, exams: 0,
+    next: "MATH 135 Bonus Quiz 1, Mon Dec 7 at 4:05 PM",
+    tomorrow: "Nothing due tomorrow in your calendar.\n\nHeads up: CS 115 and MATH 137 don't post deadlines to LEARN. Send me their outlines and I'll track those too.",
+    finished: "I don't see an econ course. Your courses are MATH 135, CS 115, MATH 137 and MTHEL 99.",
+    morning: "Good morning 👋 Nothing due today.\n\nNext up: MATH 135 Bonus Quiz 1, Dec 7.",
+  },
+  laurier: {
+    courses: [
+      { code: "EC 120", name: "Intro To Microeconomics", upcoming: 26 },
+      { code: "BU 111", name: "Understanding the Business Environment", upcoming: 11 },
+    ],
+    days: [0, 2, 0, 2, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0], week: 4, exams: 0,
+    next: "EC 120 Ch. 5 EOC Problems, Tue Oct 6 at 10:00 AM",
+    tomorrow: "2 things due tomorrow (Tue):\n• EC 120 Ch. 5 EOC Problems, 10 AM\n• EC 120 Ch. 7 Podcast Assignment, 10 AM",
+    finished: "Which one? You have 2 EC 120 items due tomorrow:\n• Ch. 5 EOC Problems\n• Ch. 7 Podcast Assignment",
+    morning: "Good morning 👋 2 things due today:\n• EC 120 Ch. 7 Podcast Assignment, 10 AM\n• EC 120 Ch. 5 EOC Problems, 10 AM",
+  },
+};
+const GENERIC = {
+  courses: [
+    { code: "BIOL 101", name: "Introduction to Biology", upcoming: 9 },
+    { code: "PSYC 100", name: "Introduction to Psychology", upcoming: 6 },
+    { code: "ECON 101", name: "Principles of Microeconomics", upcoming: 0 },
+  ],
+  days: [0, 1, 0, 2, 1, 0, 0, 0, 1, 0, 3, 0, 0, 1], week: 4, exams: 1,
+  next: "BIOL 101 Lab Report 2, Thu Oct 8 at 11:59 PM",
+  tomorrow: "1 thing due tomorrow: PSYC 100 Quiz 3 at 11:59 PM.",
+  finished: "Marked ECON 101 Problem Set 2 done ✅",
+  morning: "Good morning 👋 1 thing due today:\n• PSYC 100 Quiz 3, 11:59 PM",
+};
+
+const STEP_SCREENS = { welcome: 1, school: 2, connect: 3, oauth: 3, connecting: 3, connected: 3, extras: 4, prefs: 5 };
+const TITLES = { welcome: "Welcome", school: "School", connect: "Connect", oauth: "Connect", connecting: "Connect",
+  connected: "Connected", extras: "Extras", prefs: "Texts", done: "Done", manage: "Manage" };
+const JUMP = [["sms", "Text that starts it"], ["welcome", "1 · Welcome + consent"], ["school", "2 · Pick school"],
+  ["connect", "3 · Connect Brightspace"], ["oauth", "3 · Sign in on school site"], ["connected", "3 · Courses found"],
+  ["extras", "4 · Extras"], ["prefs", "5 · Your texts"], ["done", "Done"], ["sms-end", "Back in Messages"], ["manage", "MANAGE page"]];
+
+const state = { school: SCHOOLS[1], history: [], screen: "sms", email: false, outlines: new Set(), oneTap: true };
+const $ = (sel) => document.querySelector(sel);
+const data = () => EXAMPLES[state.school.slug] || GENERIC;
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const CHECK = '<svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:3"><path d="M20 6L9 17l-5-5"/></svg>';
+
+function logoHTML(s, size = "") {
+  if (LOGOS[s.slug]) return `<span class="logo ${size}"><img src="${LOGOS[s.slug]}" alt="" width="34" height="34"></span>`;
+  return `<span class="logo mono ${size}" style="background:${s.color || "#555"}" aria-hidden="true">${esc(s.mono || s.name[0])}</span>`;
+}
+
+function go(name, { push = true } = {}) {
+  if (push && state.screen !== name) state.history.push(state.screen);
+  state.screen = name;
+  document.querySelectorAll("[data-screen]").forEach((el) => { el.hidden = el.dataset.screen !== name; });
+  $("#chrome").hidden = ["sms", "sms-end"].includes(name);
+  $("#screen-title").textContent = TITLES[name] || "";
+  const step = STEP_SCREENS[name];
+  $("#progress").hidden = !step;
+  if (step) document.querySelectorAll("#progress span").forEach((el, i) => el.classList.toggle("on", i < step));
+  render(name);
+  document.querySelectorAll("#jump button").forEach((b) => b.classList.toggle("on", b.dataset.to === name));
+  $(".device").scrollIntoView({ block: "start" });
+}
+
+function back() {
+  const prev = state.history.pop();
+  go(prev === "connecting" ? "connect" : prev || "sms", { push: false });
+}
+
+function renderSchools() {
+  const q = $("#school-search").value.trim().toLowerCase();
+  const list = SCHOOLS.filter((s) => !q || `${s.name} ${s.lms} ${s.slug}`.toLowerCase().includes(q));
+  $("#schools").innerHTML = list.length ? list.map((s) => `
+    <button class="school" role="listitem" data-slug="${s.slug}" aria-pressed="${state.picked === s.slug}">
+      ${logoHTML(s)}<span class="txt"><span class="name">${esc(s.name)}</span><span class="lms">${esc(s.lms)}</span></span>
+      <span class="pick">${state.picked === s.slug ? CHECK : ""}</span>
+    </button>`).join("") : `<p class="muted small" style="text-align:center">No match. Only Ontario Brightspace schools for now.</p>`;
+}
+
+function render(name) {
+  const s = state.school, d = data();
+  for (let i = 1; i <= 6; i++) $("#lms-name-" + i).textContent = s.lms;
+  if (name === "school") renderSchools();
+  if (name === "connect") {
+    $("#onetap").hidden = !state.oneTap;
+    $("#fallback").hidden = state.oneTap;
+    $("#connect-logo").innerHTML = $("#fallback-logo").innerHTML = logoHTML(s, "lg");
+    $("#connect-school").textContent = s.name;
+    $("#connect-h").textContent = $("#fallback-h").textContent = `Connect ${s.lms}`;
+    $("#open-cal").href = s.rootOu ? `https://${s.host}/d2l/le/calendar/${s.rootOu}` : `https://${s.host}/d2l/home`;
+  }
+  if (name === "oauth") $("#oauth-host").textContent = s.host;
+  if (name === "connecting") $("#connecting-h").textContent = state.oneTap ? `Reading your ${s.lms} courses…` : "Reading your calendar…";
+  if (name === "connected") {
+    const total = d.courses.reduce((n, c) => n + c.upcoming, 0);
+    const quiet = d.courses.filter((c) => c.upcoming === 0);
+    $("#found-src").textContent = s.lms;
+    $("#found-h").textContent = `${d.courses.length} courses`;
+    $("#found-sub").textContent = `Next up: ${d.next}.`;
+    $("#found-chips").innerHTML = `<span class="chip">${total} upcoming</span>` +
+      (state.oneTap ? `<span class="chip">Submissions synced</span>` : "") +
+      (quiet.length ? `<span class="chip">${quiet.length} need an outline</span>` : "");
+    $("#found-tiles").innerHTML = [
+      ["Courses", d.courses.length, '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/>'],
+      ["Upcoming", total, '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/>'],
+      ["This week", d.week, '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'],
+    ].map(([lbl, n, icon]) => `<div class="tile"><svg class="i ic" viewBox="0 0 24 24">${icon}</svg><span class="big">${n}</span><span class="lbl">${lbl}</span></div>`).join("");
+    const busy = d.days.filter((n) => n > 0).length;
+    $("#grid-note").textContent = busy ? `${busy} days with deadlines` : "No calendar deadlines";
+    $("#grid14").innerHTML = d.days.map((n, i) =>
+      `<span class="cell ${n >= 2 ? "c2" : n === 1 ? "c1" : ""} ${i === 0 ? "today" : ""}" title="${n} due"></span>`).join("");
+    $("#courses").innerHTML = d.courses.map((c) => `
+      <div class="item"><div class="txt"><span class="t">${esc(c.code)}</span><span class="s">${esc(c.name)}</span></div>
+      ${c.upcoming ? `<span class="status">${c.upcoming} upcoming</span>` : `<span class="status warn">No deadlines posted</span>`}</div>`).join("");
+    $("#gap-msg").hidden = !quiet.length;
+    $("#gap-msg").textContent = quiet.length
+      ? `${quiet.map((c) => c.code).join(", ")} ${quiet.length > 1 ? "don't" : "doesn't"} post deadlines to ${s.lms}. Add ${quiet.length > 1 ? "their outlines" : "its outline"} on the next step so nothing slips.` : "";
+  }
+  if (name === "extras") {
+    $("#sender-guess").textContent = `noreply@${s.host}`;
+    $("#email-help").textContent = state.oneTap ? "Announcements and extensions (grades already come through)" : "Grades released, announcements, extensions";
+    const courses = [...d.courses].sort((a, b) => a.upcoming - b.upcoming);
+    $("#syl-courses").innerHTML = courses.map((c) => {
+      const added = state.outlines.has(c.code);
+      return `<div class="item"><div class="txt"><span class="t">${esc(c.code)}</span>
+        <span class="s">${added ? "Added. You'll get a text if anything needs confirming" : c.upcoming ? "Adds grade weights" : "Recommended: nothing in the calendar"}</span></div>
+        ${added ? `<span class="status">Added</span>` : `<label class="btn soft sm">Upload<input type="file" hidden data-outline="${esc(c.code)}" accept=".pdf,.doc,.docx,image/*"></label>`}</div>`;
+    }).join("");
+    $("#syl-pill").textContent = `${state.outlines.size} added`;
+    $("#syl-pill").className = state.outlines.size ? "status" : "status off";
+    $("#email-pill").textContent = state.email ? "Set up" : "Not set up";
+    $("#email-pill").className = state.email ? "status" : "status off";
+  }
+  if (name === "done") {
+    const morning = $("#morning").value;
+    $("#summary").innerHTML = [
+      `${s.lms} connected`, state.email ? "Emails forwarding" : null,
+      state.outlines.size ? `${state.outlines.size} outline${state.outlines.size > 1 ? "s" : ""}` : null,
+      morning === "Off" ? "No morning text" : `Morning text ${morning}`,
+    ].filter(Boolean).map((t) => `<span class="chip">${esc(t)}</span>`).join("");
+  }
+  if (name === "sms-end") {
+    const total = d.courses.reduce((n, c) => n + c.upcoming, 0);
+    $("#connected-text").textContent = `Connected ✅ I found ${d.courses.length} courses and ${total} upcoming deadlines.\n\nNext up: ${d.next}.\n\nText me anything, like "what's due this week".`;
+    $("#tomorrow-text").textContent = d.tomorrow;
+    $("#done-text").textContent = d.finished;
+    const morning = $("#morning").value;
+    $("#morning-stamp").hidden = $("#morning-text").hidden = morning === "Off";
+    $("#morning-stamp").textContent = `Tomorrow ${morning}`;
+    $("#morning-text").textContent = d.morning;
+  }
+  if (name === "manage") {
+    $("#manage-logo").innerHTML = logoHTML(s, "lg");
+    $("#m-lms").textContent = `${s.lms} ${state.oneTap ? "account" : "calendar"}`;
+    $("#m-email").textContent = state.email ? "Forwarding from your school inbox" : "Not set up";
+    $("#m-email-pill").textContent = state.email ? "On" : "Off";
+    $("#m-email-pill").className = state.email ? "status" : "status off";
+    $("#m-syl").textContent = state.outlines.size ? [...state.outlines].join(", ") : "None added";
+    const rows = [["Morning summary", $("#morning").value], ["Heads-up", $("#offset").value],
+      ["Change alerts", $("#alerts").checked ? "On" : "Off"], ["Quiet hours", $("#quiet").checked ? "On" : "Off"]];
+    $("#m-prefs").innerHTML = rows.map(([k, v]) =>
+      `<div class="item"><div class="txt"><span class="t">${k}</span></div><span class="status ${v === "Off" ? "off" : ""}">${esc(v)}</span></div>`).join("");
+  }
+}
+
+function validateFeed(raw, school) {
+  const text = raw.trim();
+  if (!text) return "Paste the link you copied from Subscribe.";
+  let url;
+  try { url = new URL(text); } catch { return "That doesn't look like a link. Copy the whole thing from the Subscribe box, starting with https://"; }
+  if (url.protocol !== "https:") return "The link should start with https://. Copy it again from Subscribe.";
+  const host = url.hostname.toLowerCase();
+  if (host !== school.host && !host.endsWith("." + school.host))
+    return `This link is from ${host}, but ${school.lms} links start with ${school.host}. Check that you copied it from ${school.lms}, or go back and change your school.`;
+  if (!/\/d2l\/le\/calendar\/feed\//.test(url.pathname))
+    return `That's a ${school.lms} link, but not the calendar feed. In Calendar, tap Subscribe and copy that link instead.`;
+  if (!url.searchParams.get("token"))
+    return "The link is missing its private token at the end. Copy the full link from the Subscribe box.";
+  return null;
+}
+
+function finishConnect() {
+  go("connecting");
+  setTimeout(() => { if (state.screen === "connecting") go("connected"); }, 1400);
+}
+function connectWith(link) {
+  const err = validateFeed(link, state.school);
+  $("#feed-error").hidden = !err;
+  $("#feed-error").textContent = err || "";
+  if (!err) finishConnect();
+}
+
+// --- wiring -------------------------------------------------------------------------
+document.addEventListener("click", (e) => {
+  const goBtn = e.target.closest("[data-go]");
+  if (goBtn) { e.preventDefault(); go(goBtn.dataset.go); return; }
+  const sch = e.target.closest(".school");
+  if (sch) { state.picked = sch.dataset.slug; renderSchools(); $("#school-next").disabled = false; }
+});
+$("#back").addEventListener("click", back);
+$("#consent").addEventListener("change", (e) => { $("#welcome-next").disabled = !e.target.checked; });
+$("#welcome-next").addEventListener("click", () => go("school"));
+$("#school-search").addEventListener("input", renderSchools);
+$("#school-next").addEventListener("click", () => {
+  const picked = SCHOOLS.find((s) => s.slug === state.picked);
+  if (picked) { state.school = picked; $("#feed").value = ""; $("#feed-error").hidden = true; go("connect"); }
+});
+$("#paste-btn").addEventListener("click", async () => {
+  let link = "";
+  try { link = await navigator.clipboard.readText(); } catch { /* blocked in this preview; works on the real site */ }
+  // Mockup: clipboard reading is blocked inside this preview, so use an example link.
+  if (!link.trim()) link = `https://${state.school.host}/d2l/le/calendar/feed/user/feed.ics?token=EXAMPLE-not-a-real-token`;
+  connectWith(link);
+});
+$("#connect-btn").addEventListener("click", () => connectWith($("#feed").value));
+$("#oauth-btn").addEventListener("click", () => go("oauth"));
+$("#allow-btn").addEventListener("click", finishConnect);
+$("#onetap-toggle").addEventListener("change", (e) => {
+  state.oneTap = e.target.checked;
+  if (["connect", "oauth"].includes(state.screen)) go("connect", { push: false });
+  else render(state.screen);
+});
+$("#copy-fwd").addEventListener("click", async () => {
+  const btn = $("#copy-fwd");
+  try { await navigator.clipboard.writeText($("#fwd-addr").textContent); btn.textContent = "Copied"; }
+  catch { const r = document.createRange(); r.selectNodeContents($("#fwd-addr")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); btn.textContent = "Selected"; }
+  setTimeout(() => { btn.textContent = "Copy"; }, 1600);
+});
+$("#email-done").addEventListener("change", (e) => { state.email = e.target.checked; render("extras"); });
+document.addEventListener("change", (e) => {
+  const input = e.target.closest("[data-outline]");
+  if (input && input.files && input.files.length) { state.outlines.add(input.dataset.outline); render("extras"); }
+});
+$("#delete-confirm").addEventListener("input", (e) => { $("#delete-btn").disabled = e.target.value.trim() !== "DELETE"; });
+$("#delete-btn").addEventListener("click", () => { $("#delete-panel").hidden = true; $("#deleted-msg").hidden = false; });
+$("#disconnect").addEventListener("click", (e) => {
+  const b = e.currentTarget;
+  if (b.dataset.armed) { $("#m-sync").textContent = 'Disconnected. Text "connect" to add it back'; b.hidden = true; return; }
+  b.dataset.armed = "1"; b.textContent = "Tap again to confirm"; b.classList.remove("soft"); b.classList.add("danger");
+});
+$("#jump").innerHTML = JUMP.map(([to, label]) => `<button data-to="${to}">${label}</button>`).join("");
+$("#jump").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-to]");
+  if (b) { state.history = []; go(b.dataset.to, { push: false }); }
+});
+go("sms", { push: false });
+</script>

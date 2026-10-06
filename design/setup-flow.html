@@ -1,483 +1,502 @@
 <title>Assistant Setup Flow</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one phone-width column (the setup link opens on a phone, from a text);
-   on wide screens a reviewer rail sits beside it. Highlighter marks are the one bold device. */
+/* Layout: an iPhone-style screen of stacked white cards on soft grey (after the fitness-app reference):
+   bold black type, black pill actions, grey chips, one green status pill. Desktop adds a device bezel
+   and a reviewer rail; on a real phone the screen fills the width. */
 :root {
-  --bg: #eef2f0;
-  --surface: #fbfcfb;
-  --ink: #14201c;
-  --muted: #5d6b66;
-  --line: #d5ddd9;
-  --accent: #0f7a5f;
-  --accent-ink: #ffffff;
-  --accent-soft: #dcefe8;
-  --mark: #f5dc5e;
-  --mark-ink: #14201c;
-  --warn: #9a5b00;
-  --warn-soft: #fbefd9;
-  --bad: #b3261e;
-  --bad-soft: #fbe3e1;
-  --bubble-them: #e3e9e6;
-  --bubble-me: #0f7a5f;
-  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
-  --radius: 14px;
+  --bg: #f2f2f5;
+  --card: #ffffff;
+  --ink: #111114;
+  --muted: #8b8b93;
+  --line: #e7e7ec;
+  --chip: #eeeef2;
+  --primary: #1c1c1f;
+  --primary-ink: #ffffff;
+  --good: #1e9e57;
+  --good-soft: #e2f6ea;
+  --warn: #a86400;
+  --warn-soft: #fcf0da;
+  --bad: #c42b2b;
+  --bad-soft: #fde8e7;
+  --cell-0: #ececf0;
+  --cell-1: #b9b9c1;
+  --cell-2: #1c1c1f;
+  --bezel: #0b0b0d;
+  --shadow: 0 1px 2px rgba(17, 17, 20, .04), 0 10px 28px -16px rgba(17, 17, 20, .18);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --r-card: 24px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0c1311; --surface: #131c19; --ink: #e5eee9; --muted: #95a59f; --line: #263430;
-    --accent: #38c59a; --accent-ink: #06231a; --accent-soft: #173b30; --mark: #8f7c1d; --mark-ink: #fff7d1;
-    --warn: #f0b45a; --warn-soft: #3a2a10; --bad: #ff8a80; --bad-soft: #3d1715;
-    --bubble-them: #22302b; --bubble-me: #1f8f6e; color-scheme: dark;
+    --bg: #000000; --card: #1c1c1e; --ink: #f4f4f6; --muted: #9a9aa2; --line: #2c2c30; --chip: #2a2a2e;
+    --primary: #f4f4f6; --primary-ink: #111114; --good: #3ccf7a; --good-soft: #10301d; --warn: #f1b45a;
+    --warn-soft: #36270e; --bad: #ff8a85; --bad-soft: #3a1616; --cell-0: #2a2a2e; --cell-1: #5c5c64;
+    --cell-2: #f4f4f6; --bezel: #2a2a2e; --shadow: 0 1px 0 rgba(255,255,255,.03); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0c1311; --surface: #131c19; --ink: #e5eee9; --muted: #95a59f; --line: #263430;
-  --accent: #38c59a; --accent-ink: #06231a; --accent-soft: #173b30; --mark: #8f7c1d; --mark-ink: #fff7d1;
-  --warn: #f0b45a; --warn-soft: #3a2a10; --bad: #ff8a80; --bad-soft: #3d1715;
-  --bubble-them: #22302b; --bubble-me: #1f8f6e; color-scheme: dark;
+  --bg: #000000; --card: #1c1c1e; --ink: #f4f4f6; --muted: #9a9aa2; --line: #2c2c30; --chip: #2a2a2e;
+  --primary: #f4f4f6; --primary-ink: #111114; --good: #3ccf7a; --good-soft: #10301d; --warn: #f1b45a;
+  --warn-soft: #36270e; --bad: #ff8a85; --bad-soft: #3a1616; --cell-0: #2a2a2e; --cell-1: #5c5c64;
+  --cell-2: #f4f4f6; --bezel: #2a2a2e; --shadow: 0 1px 0 rgba(255,255,255,.03); color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
-body {
-  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5;
-  padding-inline: 16px; padding-block: 24px 48px;
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.45; padding-inline: 16px; padding-block: 20px 48px; -webkit-font-smoothing: antialiased; }
+.layout { display: flex; gap: 36px; justify-content: center; align-items: flex-start; }
+.device { width: 100%; max-width: 410px; min-width: 0; }
+.screenwrap { background: var(--bg); min-width: 0; }
+.statusbar { display: none; }
+@media (min-width: 761px) {
+  body { background: var(--chip); }
+  .device { background: var(--bezel); border-radius: 56px; padding: 11px; box-shadow: 0 30px 70px -30px rgba(0,0,0,.45); }
+  .screenwrap { border-radius: 46px; overflow: hidden; min-height: 820px; }
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 30px 6px; font-weight: 600; font-size: .95rem; font-variant-numeric: tabular-nums; position: relative; }
+  .island { position: absolute; left: 50%; top: 11px; transform: translateX(-50%); width: 118px; height: 33px; background: #000; border-radius: 20px; }
+  .bars { display: flex; gap: 5px; align-items: center; }
 }
-.layout { display: flex; gap: 32px; justify-content: center; align-items: flex-start; }
-.phone {
-  width: 100%; max-width: 420px; min-width: 0; background: var(--surface); border: 1px solid var(--line);
-  border-radius: 28px; overflow: hidden; box-shadow: 0 18px 50px -24px rgba(10, 30, 24, .35);
-}
-.rail { width: 260px; flex: none; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); }
+.rail { width: 270px; flex: none; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); }
 @media (max-width: 760px) { .rail { display: none; } }
 
-h1, h2 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.015em; line-height: 1.1; text-wrap: balance; margin: 0; }
-h1 { font-size: 1.85rem; }
-h2 { font-size: 1.35rem; }
-h3 { font-size: 1rem; margin: 0; font-weight: 600; }
+h1, h2 { margin: 0; font-weight: 800; letter-spacing: -0.025em; line-height: 1.08; text-wrap: balance; }
+h1 { font-size: 2.05rem; }
+h2 { font-size: 1.6rem; }
+h3 { margin: 0; font-size: 1rem; font-weight: 650; letter-spacing: -0.01em; }
 p { margin: 0; }
 .muted { color: var(--muted); }
 .small { font-size: .875rem; }
-.mark { background: linear-gradient(transparent 55%, var(--mark) 55%); color: inherit; padding-inline: 2px; }
-.mono { font-family: var(--font-mono); font-size: .82rem; word-break: break-all; }
-.eyebrow { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.tiny { font-size: .78rem; }
+.eyebrow { font-size: .8rem; color: var(--muted); font-weight: 500; }
+.num { font-variant-numeric: tabular-nums; }
+svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* top bar + progress (the five steps are a real sequence) */
-.topbar { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); min-height: 58px; }
-.topbar .title { font-weight: 600; flex: 1; min-width: 0; }
-.iconbtn { background: none; border: 0; color: var(--ink); font: inherit; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
-.iconbtn:hover { background: var(--accent-soft); }
-.progress { display: flex; gap: 6px; padding: 12px 18px 0; }
-.progress span { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
-.progress span.on { background: var(--accent); }
-.stepnote { padding: 6px 18px 0; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* chrome */
+.topbar { display: flex; align-items: center; gap: 8px; padding: 6px 14px 4px; min-height: 44px; }
+.topbar .title { flex: 1; text-align: center; font-weight: 650; margin-right: 44px; }
+.round { width: 44px; height: 36px; border: 0; border-radius: 999px; background: var(--card); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow); }
+.progress { display: flex; gap: 6px; padding: 8px 18px 2px; }
+.progress span { flex: 1; height: 5px; border-radius: 5px; background: var(--cell-0); }
+.progress span.on { background: var(--primary); }
 
-.screen { padding: 22px 18px 26px; display: flex; flex-direction: column; gap: 18px; }
-.stack { display: flex; flex-direction: column; gap: 10px; }
-.row { display: flex; gap: 10px; align-items: center; }
+.screen { padding: 12px 14px 28px; display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--card); border-radius: var(--r-card); padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.flat { box-shadow: none; border: 1.5px dashed var(--line); background: transparent; }
+.row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.between { justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--chip); border-radius: 999px; padding: 6px 12px; font-size: .85rem; font-weight: 550; }
+.chip svg.i { width: 15px; height: 15px; }
+.status { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 11px; font-size: .8rem; font-weight: 600; background: var(--good-soft); color: var(--good); white-space: nowrap; }
+.status svg.i { width: 15px; height: 15px; }
+.status.warn { background: var(--warn-soft); color: var(--warn); }
+.status.off { background: var(--chip); color: var(--muted); }
 
-/* buttons */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px;
-  border-radius: 999px; border: 1px solid transparent; font: 600 1rem var(--font-body); cursor: pointer;
-  background: var(--accent); color: var(--accent-ink); padding: 0 20px;
-}
-.btn:hover { filter: brightness(1.06); }
-.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
-.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; border: 0; border-radius: 999px; background: var(--primary); color: var(--primary-ink); font: 650 1rem var(--font); cursor: pointer; padding: 0 22px; text-decoration: none; }
+.btn:hover { opacity: .92; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.btn.soft { background: var(--chip); color: var(--ink); }
 .btn.danger { background: var(--bad); color: #fff; }
-.btn.small { width: auto; min-height: 36px; font-size: .875rem; padding: 0 14px; }
-.linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font: 600 .95rem var(--font-body); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn.sm { width: auto; min-height: 36px; font-size: .85rem; padding: 0 14px; gap: 6px; }
+.linkbtn { background: none; border: 0; padding: 0; color: inherit; font: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--good); outline-offset: 2px; }
 
-/* messages thread */
-.thread { background: var(--surface); padding: 18px 14px 22px; display: flex; flex-direction: column; gap: 8px; }
-.contact { text-align: center; padding: 18px 0 10px; border-bottom: 1px solid var(--line); }
-.avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin: 0 auto 6px; font: 800 1.2rem var(--font-display); }
-.bubble { max-width: 82%; padding: 9px 13px; border-radius: 18px; font-size: .95rem; white-space: pre-line; }
-.bubble.them { background: var(--bubble-them); align-self: flex-start; border-bottom-left-radius: 6px; }
-.bubble.me { background: var(--bubble-me); color: #fff; align-self: flex-end; border-bottom-right-radius: 6px; }
-.bubble a, .bubble .lnk { color: inherit; text-decoration: underline; font-weight: 600; }
-.stamp { text-align: center; font-size: .75rem; color: var(--muted); margin: 6px 0; }
+/* lists */
+.ticks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.ticks li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: center; font-size: .93rem; }
+.ticks .ic { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--chip); }
+.ticks .ic svg.i { width: 16px; height: 16px; }
+.ticks .ic.no { background: var(--bad-soft); color: var(--bad); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; counter-increment: s; align-items: start; font-size: .93rem; }
+.steps li::before { content: counter(s); width: 30px; height: 30px; border-radius: 10px; background: var(--chip); display: grid; place-items: center; font-weight: 700; font-size: .85rem; }
+.steps li > div { min-width: 0; padding-top: 4px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 
-/* cards and lists */
-.panel { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-.panel.accent { background: var(--accent-soft); border-color: transparent; }
-.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
-.checklist li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; }
-.yes::before { content: "✓"; color: var(--accent); font-weight: 700; }
-.no::before { content: "✕"; color: var(--bad); font-weight: 700; }
-.steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; counter-reset: s; }
-.steps li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; counter-increment: s; }
-.steps li::before { content: counter(s); width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--surface); display: grid; place-items: center; font: 700 .8rem var(--font-body); }
-.steps li > div { min-width: 0; }
+/* stat tiles */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tile { background: var(--card); border-radius: 20px; padding: 14px 10px 12px; box-shadow: var(--shadow); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.tile .ic { color: var(--muted); margin-bottom: 4px; }
+.tile .big { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tile .lbl { font-size: .8rem; color: var(--muted); }
 
-/* mini Brightspace illustrations */
-.mini { margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: .78rem; background: var(--bg); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.mini .tab { padding: 2px 8px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); }
-.mini .tab.hot { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+/* 14-day grid */
+.grid14 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+.cell { aspect-ratio: 1.55; border-radius: 9px; background: var(--cell-0); max-width: 100%; }
+.cell.c1 { background: var(--cell-1); }
+.cell.c2 { background: var(--cell-2); }
+.cell.today { outline: 2px solid var(--good); outline-offset: 2px; }
+.cell.empty { background: transparent; border: 1.5px dashed var(--line); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: .75rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 12px; height: 9px; border-radius: 3px; display: inline-block; background: var(--cell-0); }
+
+/* logos */
+.logo { width: 44px; height: 44px; border-radius: 13px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; flex: none; overflow: hidden; }
+.logo img { width: 34px; height: 34px; object-fit: contain; }
+.logo.mono { color: #fff; font-weight: 800; font-size: .95rem; letter-spacing: -0.03em; border: 0; }
+.logo.lg { width: 56px; height: 56px; border-radius: 16px; }
+.logo.lg img { width: 44px; height: 44px; }
 
 /* school list */
-.field { width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font: 1rem var(--font-body); background: var(--surface); color: var(--ink); }
-textarea.field { min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: .82rem; }
-.schools { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 2px; }
-.school { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
-.school:hover { border-color: var(--accent); }
-.school[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
-.school .lms { font-size: .8rem; color: var(--muted); grid-column: 1; }
-.school .host { font-size: .72rem; color: var(--muted); font-family: var(--font-mono); grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.field { width: 100%; min-height: 48px; border: 0; border-radius: 14px; padding: 12px 16px; font: 1rem var(--font); background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+textarea.field { min-height: 88px; resize: vertical; font: .82rem var(--mono); }
+.schools { display: flex; flex-direction: column; gap: 8px; }
+.school { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px 10px 10px; border: 0; border-radius: 20px; background: var(--card); color: var(--ink); font: inherit; cursor: pointer; text-align: left; box-shadow: var(--shadow); }
+.school .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.school .name { font-weight: 650; }
+.school .lms { font-size: .8rem; color: var(--muted); }
+.school .pick { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); flex: none; display: grid; place-items: center; color: var(--primary-ink); }
+.school[aria-pressed="true"] { outline: 2px solid var(--primary); }
+.school[aria-pressed="true"] .pick { background: var(--primary); border-color: var(--primary); }
 
-/* status */
-.msg { border-radius: 12px; padding: 10px 12px; font-size: .9rem; }
+/* messages */
+.thread { padding: 6px 14px 26px; display: flex; flex-direction: column; gap: 7px; }
+.contact { text-align: center; padding: 10px 0 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: var(--primary-ink); display: grid; place-items: center; font-weight: 800; font-size: 1.3rem; }
+.bubble { max-width: 80%; padding: 9px 14px; border-radius: 20px; font-size: .95rem; white-space: pre-line; }
+.bubble.them { background: var(--card); align-self: flex-start; border-bottom-left-radius: 6px; box-shadow: var(--shadow); }
+.bubble.me { background: var(--primary); color: var(--primary-ink); align-self: flex-end; border-bottom-right-radius: 6px; }
+.stamp { text-align: center; font-size: .75rem; color: var(--muted); margin: 6px 0; }
+
+/* course rows, settings rows */
+.list { display: flex; flex-direction: column; }
+.item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); min-width: 0; }
+.item:first-child { border-top: 0; padding-top: 2px; }
+.item:last-child { padding-bottom: 2px; }
+.item .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.item .t { font-weight: 650; font-variant-numeric: tabular-nums; }
+.item .s { font-size: .8rem; color: var(--muted); }
+.switch { position: relative; width: 51px; height: 31px; flex: none; }
+.switch input { opacity: 0; position: absolute; inset: 0; margin: 0; cursor: pointer; width: 100%; height: 100%; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--cell-0); transition: background .15s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.2); transition: transform .15s; }
+.switch input:checked + span { background: var(--primary); }
+.switch input:checked + span::after { transform: translateX(20px); background: var(--card); }
+:root[data-theme="dark"] .switch input:checked + span::after { background: #111114; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .switch input:checked + span::after { background: #111114; } }
+.switch input:focus-visible + span { outline: 3px solid var(--good); outline-offset: 2px; }
+select.sel { border: 0; background: var(--chip); color: var(--ink); border-radius: 999px; padding: 8px 12px; font: 600 .85rem var(--font); }
+.check { display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start; font-size: .9rem; cursor: pointer; }
+.check input { width: 22px; height: 22px; margin: 0; accent-color: var(--primary); }
+
+.msg { border-radius: 16px; padding: 12px 14px; font-size: .88rem; }
 .msg.bad { background: var(--bad-soft); color: var(--bad); }
 .msg.warn { background: var(--warn-soft); color: var(--warn); }
-.pill { display: inline-block; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
-.pill.warn { background: var(--warn-soft); color: var(--warn); }
-.pill.off { background: var(--line); color: var(--muted); }
-.courses { display: flex; flex-direction: column; }
-.course { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 0; border-top: 1px solid var(--line); align-items: center; }
-.course:first-child { border-top: 0; }
-.course .code { font-weight: 600; font-variant-numeric: tabular-nums; }
-.course .sub { grid-column: 1; font-size: .8rem; color: var(--muted); }
-.course .pill { grid-column: 2; grid-row: 1 / span 2; }
-.spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .9s linear infinite; margin: 0 auto; }
+.spinner { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--cell-0); border-top-color: var(--primary); animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* toggles / settings */
-.setting { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
-.setting:first-child { border-top: 0; }
-.setting .help { grid-column: 1; font-size: .8rem; color: var(--muted); }
-.setting > :last-child { grid-column: 2; grid-row: 1 / span 2; }
-.switch { position: relative; width: 48px; height: 28px; flex: none; }
-.switch input { opacity: 0; width: 100%; height: 100%; position: absolute; margin: 0; cursor: pointer; }
-.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background .15s; pointer-events: none; }
-.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
-.switch input:checked + span { background: var(--accent); }
-.switch input:checked + span::after { transform: translateX(20px); }
-.switch input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
-select.field { width: auto; min-height: 40px; padding: 6px 10px; }
-.check { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; font-size: .92rem; cursor: pointer; }
-.check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); }
-
-details.extra { border: 1px solid var(--line); border-radius: var(--radius); }
-details.extra summary { list-style: none; cursor: pointer; padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
-details.extra summary::-webkit-details-marker { display: none; }
-details.extra summary .help { font-size: .82rem; color: var(--muted); grid-column: 1; }
-details.extra summary .pill { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
-details.extra .body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
-.copyrow { display: flex; gap: 8px; align-items: center; border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; }
-.copyrow .mono { flex: 1; min-width: 0; }
+details.more summary { cursor: pointer; list-style: none; font-weight: 650; font-size: .9rem; display: flex; justify-content: space-between; align-items: center; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more[open] summary svg { transform: rotate(90deg); }
+details.more .body { padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.copyrow { display: flex; align-items: center; gap: 8px; background: var(--chip); border-radius: 14px; padding: 8px 8px 8px 12px; }
+.copyrow .mono { flex: 1; min-width: 0; font: .8rem var(--mono); word-break: break-all; }
 
 /* reviewer rail */
-.rail .note { border-left: 3px solid var(--mark); padding: 4px 0 4px 12px; display: flex; flex-direction: column; gap: 6px; }
-.rail nav { margin-top: 20px; display: flex; flex-direction: column; gap: 2px; }
-.rail nav button { text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 8px; color: var(--ink); font: .9rem var(--font-body); cursor: pointer; }
-.rail nav button:hover { background: var(--surface); }
-.rail nav button.on { background: var(--surface); font-weight: 600; }
-.mobile-note { max-width: 420px; margin: 0 auto 12px; font-size: .8rem; color: var(--muted); text-align: center; }
+.rail .note { background: var(--card); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow); }
+.rail nav { margin-top: 14px; display: flex; flex-direction: column; gap: 2px; }
+.rail nav button { text-align: left; background: none; border: 0; padding: 8px 12px; border-radius: 12px; color: var(--ink); font: .9rem var(--font); cursor: pointer; }
+.rail nav button:hover { background: var(--card); }
+.rail nav button.on { background: var(--card); font-weight: 650; box-shadow: var(--shadow); }
+.mobile-note { max-width: 410px; margin: 0 auto 10px; font-size: .78rem; color: var(--muted); text-align: center; }
 @media (min-width: 761px) { .mobile-note { display: none; } }
-
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .switch span, .switch span::after { transition: none; } }
 </style>
 
 <p class="mobile-note">Clickable mockup. Nothing you type is saved or sent anywhere.</p>
 <div class="layout">
-  <main class="phone" aria-live="polite">
-    <div id="chrome" hidden>
-      <div class="topbar">
-        <button class="iconbtn" id="back" aria-label="Back">←</button>
-        <div class="title" id="screen-title">Set up</div>
+  <div class="device">
+    <main class="screenwrap" aria-live="polite">
+      <div class="statusbar" aria-hidden="true"><span>9:41</span><span class="island"></span>
+        <span class="bars"><svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5" width="3" height="7" rx="1" fill="currentColor"/><rect x="10" y="2" width="3" height="10" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12"><rect x=".5" y=".5" width="21" height="11" rx="3.5" stroke="currentColor" fill="none" opacity=".5"/><rect x="2" y="2" width="16" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".5"/></svg></span>
       </div>
-      <div class="progress" id="progress" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-      <div class="stepnote" id="stepnote"></div>
-    </div>
 
-    <!-- 0 · the text that starts it all -->
-    <section data-screen="sms" class="thread">
-      <div class="contact">
-        <div class="avatar">A</div>
-        <div><strong>Assistant</strong></div>
-        <div class="small muted">(519) 555-0142</div>
-      </div>
-      <div class="stamp">Today 7:41 PM</div>
-      <div class="bubble me">hi</div>
-      <div class="bubble them">Hey 👋 I'm your school assistant. Connect your courses once, then text me anything: what's due, what's next, "I finished econ".</div>
-      <div class="bubble them">Tap to set up (takes 2 min, link expires in 30 min):
-<button class="linkbtn lnk" data-go="welcome" style="color:inherit">setup.example.ca/s/x7Kp2</button></div>
-    </section>
-
-    <!-- 1 · welcome + consent -->
-    <section data-screen="welcome" class="screen" hidden>
-      <div class="stack">
-        <h1>Connect your school once. <span class="mark">Then just text.</span></h1>
-        <p class="muted">This page only handles the connection. Questions, reminders and answers all happen in your texts.</p>
-      </div>
-      <div class="panel">
-        <h3>What the assistant can see</h3>
-        <ul class="checklist small">
-          <li class="yes"><span>Deadlines, quizzes and exams from your Brightspace calendar</span></li>
-          <li class="yes"><span>Anything you send it: course outlines, grades, "this will take 3 hours"</span></li>
-          <li class="yes"><span>Brightspace notification emails, only if you choose to forward them</span></li>
-        </ul>
-      </div>
-      <div class="panel">
-        <h3>What it never does</h3>
-        <ul class="checklist small">
-          <li class="no"><span>Ask for or store your university password</span></li>
-          <li class="no"><span>Submit work, post, or change anything in Brightspace</span></li>
-          <li class="no"><span>Share your data with your school, profs or anyone else</span></li>
-        </ul>
-      </div>
-      <label class="check"><input type="checkbox" id="consent"><span>I agree to the <span class="linkbtn" style="font-weight:600">terms</span> and <span class="linkbtn" style="font-weight:600">privacy policy</span>, and to get texts from this number. Text STOP anytime.</span></label>
-      <button class="btn" id="welcome-next" disabled>Get started</button>
-    </section>
-
-    <!-- 2 · school -->
-    <section data-screen="school" class="screen" hidden>
-      <div class="stack">
-        <h2>Which school do you go to?</h2>
-        <p class="muted small">Ontario schools on Brightspace. Canvas, Moodle and Blackboard schools are coming later.</p>
-      </div>
-      <input class="field" id="school-search" type="search" placeholder="Search, e.g. Laurier or McMaster" autocomplete="off" aria-label="Search schools">
-      <div class="schools" id="schools" role="list"></div>
-      <button class="btn" id="school-next" disabled>Continue</button>
-    </section>
-
-    <!-- 3 · connect Brightspace -->
-    <section data-screen="connect" class="screen" hidden>
-      <!-- one tap: school has approved the app (Brightspace OAuth) -->
-      <div id="onetap" class="stack" style="gap:18px">
-        <div class="stack">
-          <h2 id="connect-h">Connect your courses</h2>
-          <p class="muted">One tap. You'll sign in on <span id="lms-name-1">Brightspace</span>'s own page, then come straight back.</p>
+      <div id="chrome" hidden>
+        <div class="topbar">
+          <button class="round" id="back" aria-label="Back"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="title" id="screen-title">Setup</div>
         </div>
-        <ul class="checklist small panel">
-          <li class="yes"><span>Deadlines, quizzes and exams from every course</span></li>
-          <li class="yes"><span>Which assignments you've already submitted</span></li>
-          <li class="yes"><span>Grades as soon as they're released</span></li>
-          <li class="no"><span>Your password never comes here. It goes to your school.</span></li>
-        </ul>
-        <button class="btn" id="oauth-btn">Connect with <span id="lms-name-2">Brightspace</span></button>
-        <p class="small muted" style="text-align:center">Read-only. Disconnect anytime by texting MANAGE.</p>
+        <div class="progress" id="progress" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
       </div>
 
-      <!-- fallback: school hasn't approved the app yet (calendar link, about 3 taps) -->
-      <div id="fallback" class="stack" style="gap:18px" hidden>
-        <div class="stack">
-          <h2 id="fallback-h">Connect your calendar</h2>
-          <p class="muted small"><span id="lms-name-4">Brightspace</span> one-tap connect isn't switched on at your school yet, so this takes three taps.</p>
+      <!-- 0 · the text that starts it -->
+      <section data-screen="sms" class="thread">
+        <div class="contact"><div class="avatar">A</div><strong>Assistant</strong><span class="tiny muted num">(519) 555-0142</span></div>
+        <div class="stamp">Today 7:41 PM</div>
+        <div class="bubble me">hi</div>
+        <div class="bubble them">Hey 👋 I'm your school assistant. Connect your courses once, then text me anything: what's due, what's next, "I finished econ".</div>
+        <div class="bubble them">Tap to set up (2 min):
+<button class="linkbtn" data-go="welcome">setup.example.ca/s/x7Kp2</button></div>
+      </section>
+
+      <!-- 1 · welcome + consent -->
+      <section data-screen="welcome" class="screen" hidden>
+        <div class="card">
+          <div class="row between"><span class="eyebrow">Setup</span><span class="status"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>2 min</span></div>
+          <h1>Connect your school once.</h1>
+          <p class="muted">Then just text. This page only handles the connection; everything else happens in your messages.</p>
+          <div class="chips"><span class="chip"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Deadlines</span><span class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l9 8h-3v9H6v-9H3z"/></svg>One number</span><span class="chip"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>No passwords</span></div>
         </div>
-        <ol class="steps small">
-          <li><div><a class="btn ghost small" id="open-cal" href="#" target="_blank" rel="noopener">Open my <span id="lms-name-5">Brightspace</span> calendar ↗</a></div></li>
-          <li><div>Tap <strong>Subscribe</strong>, then <strong>Copy</strong>.
-            <div class="mini"><span>📅 Calendar</span><span style="flex:1"></span><span class="tab hot">⤓ Subscribe</span></div>
-            <span class="muted">No Subscribe button? Open the calendar's Settings and turn on <em>Enable Calendar Feeds</em>.</span></div></li>
-          <li><div>Come back here and tap <strong>Paste and connect</strong>.</div></li>
-        </ol>
-        <button class="btn" id="paste-btn">Paste and connect</button>
-        <div id="feed-error" class="msg bad" hidden></div>
-        <details class="extra" id="manual">
-          <summary><h3 class="small">Paste didn't work?</h3><span class="help">Paste the link in yourself</span></summary>
-          <div class="body">
-            <textarea class="field" id="feed" placeholder="https://…/d2l/le/calendar/feed/user/feed.ics?token=…" spellcheck="false" aria-label="Calendar link"></textarea>
-            <button class="btn ghost" id="connect-btn">Connect</button>
+        <div class="card">
+          <h3>What it can see</h3>
+          <ul class="ticks">
+            <li><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/></svg></span><span>Deadlines, quizzes and exams from Brightspace</span></li>
+            <li><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg></span><span>Anything you send it: outlines, grades, "this will take 3 hours"</span></li>
+          </ul>
+          <h3 style="margin-top:4px">What it never does</h3>
+          <ul class="ticks">
+            <li><span class="ic no"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Ask for or store your university password</span></li>
+            <li><span class="ic no"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Submit, post or change anything in Brightspace</span></li>
+            <li><span class="ic no"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Share your data with your school, profs or anyone</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <label class="check"><input type="checkbox" id="consent"><span>I agree to the <span class="linkbtn">terms</span> and <span class="linkbtn">privacy policy</span> and to get texts from this number. Text STOP anytime.</span></label>
+          <button class="btn" id="welcome-next" disabled>Get started<svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </section>
+
+      <!-- 2 · school -->
+      <section data-screen="school" class="screen" hidden>
+        <div style="padding: 6px 4px 2px"><h2>Your school</h2><p class="muted small" style="margin-top:6px">Ontario schools on Brightspace.</p></div>
+        <input class="field" id="school-search" type="search" placeholder="Search schools" autocomplete="off" aria-label="Search schools">
+        <div class="schools" id="schools" role="list"></div>
+        <button class="btn" id="school-next" disabled>Continue</button>
+      </section>
+
+      <!-- 3 · connect -->
+      <section data-screen="connect" class="screen" hidden>
+        <div id="onetap" class="stack" style="display:flex; flex-direction:column; gap:12px">
+          <div class="card">
+            <div class="row"><span id="connect-logo"></span><div class="txt"><span class="eyebrow" id="connect-school"></span><h2 id="connect-h" style="font-size:1.45rem">Connect</h2></div></div>
+            <p class="muted small">One tap. You sign in on <span id="lms-name-1">Brightspace</span>'s own page, then come straight back.</p>
           </div>
-        </details>
-        <p class="small muted">Or skip this page entirely: paste the link into your text thread with the assistant.</p>
-      </div>
-    </section>
-
-    <!-- 3a · what happens on the school's site (one-tap path) -->
-    <section data-screen="oauth" class="screen" hidden>
-      <span class="eyebrow">Illustration · this part happens on your school's site</span>
-      <div class="panel" style="border-style:dashed; gap:14px">
-        <div class="mono muted">🔒 <span id="oauth-host">brightspace</span></div>
-        <div class="stack" style="gap:4px">
-          <h3>1. Sign in to <span id="lms-name-6">Brightspace</span> like you always do</h3>
-          <p class="small muted">Two-factor included. If you're already signed in on this phone, this step is skipped.</p>
-        </div>
-        <div class="stack" style="gap:8px">
-          <h3>2. Your school asks for permission</h3>
-          <div class="panel" style="gap:8px">
-            <p class="small"><strong>Assistant</strong> wants to:</p>
-            <ul class="checklist small">
-              <li class="yes"><span>See your calendar and due dates</span></li>
-              <li class="yes"><span>See your assignments and whether they're submitted</span></li>
-              <li class="yes"><span>See your grades</span></li>
-            </ul>
-            <p class="small muted">It can't submit, post, or change anything.</p>
+          <div class="tiles">
+            <div class="tile"><svg class="i ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="lbl">Deadlines</span></div>
+            <div class="tile"><svg class="i ic" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg><span class="lbl">Submissions</span></div>
+            <div class="tile"><svg class="i ic" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg><span class="lbl">Grades</span></div>
+          </div>
+          <div class="card">
+            <button class="btn" id="oauth-btn"><svg class="i" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Connect with <span id="lms-name-2">Brightspace</span></button>
+            <p class="tiny muted" style="text-align:center">Read-only. Your password goes to your school, never here. Disconnect anytime.</p>
           </div>
         </div>
-      </div>
-      <button class="btn" id="allow-btn">Allow</button>
-      <button class="btn ghost" data-go="connect">Cancel</button>
-    </section>
 
-    <!-- 3b · connecting / result -->
-    <section data-screen="connecting" class="screen" hidden>
-      <div class="stack" style="text-align:center; padding: 40px 0;">
-        <div class="spinner" aria-hidden="true"></div>
-        <h2 style="margin-top:14px" id="connecting-h">Reading your calendar…</h2>
-        <p class="muted small">Finding courses and deadlines, and filtering out old and non-course events.</p>
-      </div>
-    </section>
-
-    <section data-screen="connected" class="screen" hidden>
-      <div class="stack">
-        <span class="pill">Connected ✓</span>
-        <h2 id="found-h">Found your courses</h2>
-        <p class="muted small" id="found-sub"></p>
-      </div>
-      <div class="panel"><div class="courses" id="courses"></div></div>
-      <div id="gap-msg" class="msg warn" hidden></div>
-      <p class="small muted">Example results based on real LEARN and MyLearningSpace feeds.</p>
-      <button class="btn" data-go="extras">Continue</button>
-    </section>
-
-    <!-- 4 · extras -->
-    <section data-screen="extras" class="screen" hidden>
-      <div class="stack">
-        <h2>Fill the gaps <span class="muted" style="font-weight:600">(optional)</span></h2>
-        <p class="muted small">The calendar doesn't include grades, announcements, or deadlines kept outside Brightspace. Both of these can be done later by text.</p>
-      </div>
-
-      <details class="extra" id="extra-email">
-        <summary><h3>Forward Brightspace emails</h3><span class="help" id="email-help">Grades released, announcements, extensions</span><span class="pill off" id="email-pill">Not set up</span></summary>
-        <div class="body small">
-          <ol class="steps">
-            <li><div>In <strong id="lms-name-3">Brightspace</strong>: your name → <strong>Notifications</strong>. Turn on email for grades, announcements and "due soon". Tick <em>Include my grade value</em>.</div></li>
-            <li><div>In Outlook: <strong>Settings → Mail → Rules → Add rule</strong>. Rule: emails from <span class="mono" id="sender-guess">noreply@…</span> → forward to:</div></li>
-          </ol>
-          <div class="copyrow"><span class="mono" id="fwd-addr">u-7kq2x9@in.example.ca</span><button class="btn ghost small" id="copy-fwd">Copy</button></div>
-          <p class="muted">That address is private to you. If an announcement moves a deadline, you'll get a text asking before anything changes.</p>
-          <label class="check"><input type="checkbox" id="email-done"><span>I've set up the rule</span></label>
+        <div id="fallback" style="display:flex; flex-direction:column; gap:12px" hidden>
+          <div class="card">
+            <div class="row"><span id="fallback-logo"></span><div class="txt"><span class="eyebrow">3 taps</span><h2 id="fallback-h" style="font-size:1.45rem">Connect</h2></div></div>
+            <p class="muted small"><span id="lms-name-4">Brightspace</span> one-tap connect isn't on at your school yet, so this uses your calendar link.</p>
+          </div>
+          <div class="card">
+            <ol class="steps">
+              <li><div><a class="btn soft sm" id="open-cal" href="#" target="_blank" rel="noopener">Open my <span id="lms-name-5">Brightspace</span> calendar<svg class="i" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div></li>
+              <li><div><span>Tap <strong>Subscribe</strong>, then <strong>Copy</strong>.</span><span class="tiny muted">No Subscribe button? Calendar Settings → Enable Calendar Feeds.</span></div></li>
+              <li><div><span>Come back and tap the button below.</span></div></li>
+            </ol>
+            <button class="btn" id="paste-btn"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></svg>Paste and connect</button>
+            <div id="feed-error" class="msg bad" hidden></div>
+            <details class="more"><summary>Paste didn't work?<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+              <div class="body">
+                <textarea class="field" id="feed" placeholder="https://…/d2l/le/calendar/feed/user/feed.ics?token=…" spellcheck="false" aria-label="Calendar link"></textarea>
+                <button class="btn soft" id="connect-btn">Connect</button>
+              </div>
+            </details>
+          </div>
+          <p class="tiny muted" style="text-align:center; padding: 0 12px">Or skip this page: paste the link into your text thread with the assistant.</p>
         </div>
-      </details>
+      </section>
 
-      <details class="extra" id="extra-syllabus">
-        <summary><h3>Add course outlines</h3><span class="help">Grade weights, plus deadlines not in the calendar</span><span class="pill off" id="syl-pill">0 added</span></summary>
-        <div class="body small">
-          <p class="muted">PDF, Word, or photos of the pages. You'll get a text if anything needs confirming.</p>
-          <div class="courses" id="syl-courses"></div>
+      <!-- 3a · school-side sign-in (illustration) -->
+      <section data-screen="oauth" class="screen" hidden>
+        <p class="eyebrow" style="padding: 0 4px">Illustration · this part happens on your school's site</p>
+        <div class="card flat">
+          <div class="chip" style="align-self:flex-start"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span id="oauth-host" class="num">brightspace</span></div>
+          <div><h3>1 · Sign in to <span id="lms-name-6">Brightspace</span> as usual</h3><p class="small muted" style="margin-top:4px">Two-factor included. Skipped if you're already signed in on this phone.</p></div>
+          <div class="card" style="gap:10px">
+            <h3>2 · Your school asks</h3>
+            <p class="small"><strong>Assistant</strong> wants to see:</p>
+            <div class="chips"><span class="chip">Calendar &amp; due dates</span><span class="chip">Submissions</span><span class="chip">Grades</span></div>
+            <p class="tiny muted">Read-only. It can't submit, post or change anything.</p>
+          </div>
         </div>
-      </details>
+        <button class="btn" id="allow-btn">Allow</button>
+        <button class="btn soft" data-go="connect">Cancel</button>
+      </section>
 
-      <div class="stack">
+      <!-- connecting -->
+      <section data-screen="connecting" class="screen" hidden>
+        <div class="card" style="align-items:center; text-align:center; padding: 46px 18px">
+          <div class="spinner" aria-hidden="true"></div>
+          <h2 id="connecting-h" style="font-size:1.35rem">Reading your calendar…</h2>
+          <p class="muted small">Finding courses and deadlines, and filtering out old and non-course events.</p>
+        </div>
+      </section>
+
+      <!-- connected -->
+      <section data-screen="connected" class="screen" hidden>
+        <div class="card">
+          <div class="row between"><span class="eyebrow" id="found-src">LEARN</span><span class="status"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Connected</span></div>
+          <h1 id="found-h">4 courses</h1>
+          <p class="muted small" id="found-sub"></p>
+          <div class="chips" id="found-chips"></div>
+        </div>
+        <div class="tiles" id="found-tiles"></div>
+        <div class="card">
+          <div class="row between"><h3>Next 14 days</h3><span class="tiny muted num" id="grid-note"></span></div>
+          <div class="grid14" id="grid14"></div>
+          <div class="legend"><span><i></i>Free</span><span><i style="background:var(--cell-1)"></i>1 due</span><span><i style="background:var(--cell-2)"></i>2+ due</span><span><i style="outline:2px solid var(--good); background:transparent"></i>Today</span></div>
+        </div>
+        <div class="card"><h3>Courses</h3><div class="list" id="courses"></div></div>
+        <div id="gap-msg" class="msg warn" hidden></div>
+        <p class="tiny muted" style="text-align:center">Example results based on real LEARN and MyLearningSpace feeds.</p>
+        <button class="btn" data-go="extras">Continue</button>
+      </section>
+
+      <!-- 4 · extras -->
+      <section data-screen="extras" class="screen" hidden>
+        <div style="padding: 6px 4px 2px"><h2>Fill the gaps</h2><p class="muted small" style="margin-top:6px">Optional. Both can be done later by text.</p></div>
+        <div class="card">
+          <div class="row between"><h3>Brightspace emails</h3><span class="status off" id="email-pill">Not set up</span></div>
+          <p class="small muted" id="email-help">Grades released, announcements, extensions</p>
+          <details class="more"><summary>How to set it up<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+            <div class="body small">
+              <ol class="steps">
+                <li><div><span>In <strong id="lms-name-3">Brightspace</strong>: your name → Notifications → email for grades, announcements, due soon.</span></div></li>
+                <li><div><span>In Outlook, add a rule: from <span class="mono" id="sender-guess" style="font:.8rem var(--mono)">noreply@…</span> → forward to</span></div></li>
+              </ol>
+              <div class="copyrow"><span class="mono" id="fwd-addr">u-7kq2x9@in.example.ca</span><button class="btn sm" id="copy-fwd">Copy</button></div>
+              <label class="check"><input type="checkbox" id="email-done"><span>I've set up the rule</span></label>
+            </div>
+          </details>
+        </div>
+        <div class="card">
+          <div class="row between"><h3>Course outlines</h3><span class="status off" id="syl-pill">0 added</span></div>
+          <p class="small muted">Grade weights, plus deadlines that aren't in the calendar.</p>
+          <div class="list" id="syl-courses"></div>
+        </div>
         <button class="btn" data-go="prefs">Continue</button>
-        <button class="btn ghost" data-go="prefs">Skip for now</button>
-      </div>
-    </section>
+        <button class="btn soft" data-go="prefs">Skip for now</button>
+      </section>
 
-    <!-- 5 · preferences -->
-    <section data-screen="prefs" class="screen" hidden>
-      <div class="stack">
-        <h2>How often should it text you?</h2>
-        <p class="muted small">Change any of this later by texting, e.g. "send my morning text at 9".</p>
-      </div>
-      <div class="panel" style="padding-block:4px">
-        <div class="setting"><h3>Morning summary</h3><span class="help">What's due today and tomorrow</span>
-          <select class="field" id="morning"><option>Off</option><option>7:00 AM</option><option selected>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option></select></div>
-        <div class="setting"><h3>Heads-up before deadlines</h3><span class="help">For anything not marked done</span>
-          <select class="field" id="offset"><option>Off</option><option>1 hour before</option><option selected>3 hours before</option><option>1 day before</option></select></div>
-        <div class="setting"><h3>Change alerts</h3><span class="help">When a deadline moves, or something new is posted</span>
-          <label class="switch"><input type="checkbox" id="alerts" checked aria-label="Change alerts"><span></span></label></div>
-        <div class="setting"><h3>Sunday week preview</h3><span class="help">Deadlines and exams coming up next week</span>
-          <label class="switch"><input type="checkbox" id="weekly" checked aria-label="Sunday week preview"><span></span></label></div>
-        <div class="setting"><h3>Quiet hours</h3><span class="help">No automatic texts 11 PM – 7 AM</span>
-          <label class="switch"><input type="checkbox" id="quiet" checked aria-label="Quiet hours"><span></span></label></div>
-      </div>
-      <button class="btn" data-go="done">Finish</button>
-    </section>
+      <!-- 5 · texts -->
+      <section data-screen="prefs" class="screen" hidden>
+        <div style="padding: 6px 4px 2px"><h2>Your texts</h2><p class="muted small" style="margin-top:6px">Change any of this later by texting, like "send my morning text at 9".</p></div>
+        <div class="card">
+          <div class="list">
+            <div class="item"><div class="txt"><span class="t">Morning summary</span><span class="s">Today and tomorrow</span></div>
+              <select class="sel" id="morning" aria-label="Morning summary"><option>Off</option><option>7:00 AM</option><option selected>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option></select></div>
+            <div class="item"><div class="txt"><span class="t">Heads-up</span><span class="s">Before anything not marked done</span></div>
+              <select class="sel" id="offset" aria-label="Heads-up timing"><option>Off</option><option>1 hr before</option><option selected>3 hrs before</option><option>1 day before</option></select></div>
+            <div class="item"><div class="txt"><span class="t">Change alerts</span><span class="s">A deadline moves or something new is posted</span></div>
+              <label class="switch"><input type="checkbox" id="alerts" checked aria-label="Change alerts"><span></span></label></div>
+            <div class="item"><div class="txt"><span class="t">Sunday preview</span><span class="s">Next week's deadlines and exams</span></div>
+              <label class="switch"><input type="checkbox" id="weekly" checked aria-label="Sunday preview"><span></span></label></div>
+            <div class="item"><div class="txt"><span class="t">Quiet hours</span><span class="s">No automatic texts 11 PM – 7 AM</span></div>
+              <label class="switch"><input type="checkbox" id="quiet" checked aria-label="Quiet hours"><span></span></label></div>
+          </div>
+        </div>
+        <button class="btn" data-go="done">Finish</button>
+      </section>
 
-    <!-- done -->
-    <section data-screen="done" class="screen" hidden>
-      <div class="stack">
-        <h1>You're set. <span class="mark">Go back to your texts.</span></h1>
-        <p class="muted">Everything from here happens by text. You can close this page.</p>
-      </div>
-      <div class="panel small" id="summary"></div>
-      <button class="btn" data-go="sms-end">Back to Messages</button>
-      <p class="small muted" style="text-align:center">Text <strong>MANAGE</strong> anytime to get a link to your settings. <button class="linkbtn small" data-go="manage">Preview it</button></p>
-    </section>
+      <!-- done -->
+      <section data-screen="done" class="screen" hidden>
+        <div class="card">
+          <div class="row between"><span class="eyebrow">Today</span><span class="status"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Completed</span></div>
+          <h1>You're set</h1>
+          <p class="muted small">Everything from here happens by text.</p>
+          <div class="chips" id="summary"></div>
+          <button class="btn" data-go="sms-end"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Back to Messages</button>
+        </div>
+        <p class="tiny muted" style="text-align:center">Text <strong>MANAGE</strong> anytime for your settings. <button class="linkbtn" data-go="manage">Preview it</button></p>
+      </section>
 
-    <!-- back in messages -->
-    <section data-screen="sms-end" class="thread" hidden>
-      <div class="contact">
-        <div class="avatar">A</div>
-        <div><strong>Assistant</strong></div>
-        <div class="small muted">(519) 555-0142</div>
-      </div>
-      <div class="stamp">Today 7:44 PM</div>
-      <div class="bubble them" id="connected-text"></div>
-      <div class="bubble me">what's due tomorrow</div>
-      <div class="bubble them" id="tomorrow-text"></div>
-      <div class="bubble me">I finished econ</div>
-      <div class="bubble them" id="done-text"></div>
-      <div class="stamp" id="morning-stamp">Tomorrow 8:00 AM</div>
-      <div class="bubble them" id="morning-text"></div>
-      <button class="btn ghost" data-go="manage" style="margin-top:14px">Preview the MANAGE page</button>
-    </section>
+      <!-- back in messages -->
+      <section data-screen="sms-end" class="thread" hidden>
+        <div class="contact"><div class="avatar">A</div><strong>Assistant</strong><span class="tiny muted num">(519) 555-0142</span></div>
+        <div class="stamp">Today 7:44 PM</div>
+        <div class="bubble them" id="connected-text"></div>
+        <div class="bubble me">what's due tomorrow</div>
+        <div class="bubble them" id="tomorrow-text"></div>
+        <div class="bubble me">I finished econ</div>
+        <div class="bubble them" id="done-text"></div>
+        <div class="stamp" id="morning-stamp">Tomorrow 8:00 AM</div>
+        <div class="bubble them" id="morning-text"></div>
+        <button class="btn soft" data-go="manage" style="margin-top:14px">Preview the MANAGE page</button>
+      </section>
 
-    <!-- manage -->
-    <section data-screen="manage" class="screen" hidden>
-      <div class="stack">
-        <span class="eyebrow">Your account</span>
-        <h2>Settings</h2>
-        <p class="muted small">Opened from a one-time link texted to <span style="font-variant-numeric:tabular-nums">(•••) •••-0187</span>. Expires in 30 min.</p>
-      </div>
-      <div class="panel" style="padding-block:4px">
-        <div class="setting"><h3 id="m-lms">Brightspace calendar</h3><span class="help" id="m-sync">Last checked 12 min ago</span><button class="btn ghost small" id="disconnect">Disconnect</button></div>
-        <div class="setting"><h3>Notification emails</h3><span class="help" id="m-email">Not set up</span><span class="pill off" id="m-email-pill">Off</span></div>
-        <div class="setting"><h3>Course outlines</h3><span class="help" id="m-syl">None added</span><button class="btn ghost small" data-go="extras">Add</button></div>
-      </div>
-      <div class="panel small" id="m-prefs"></div>
-      <div class="panel" id="delete-panel">
-        <h3>Delete your account</h3>
-        <p class="small muted">Deletes your courses, deadlines, outlines, grades and messages. This can't be undone.</p>
-        <label class="small" for="delete-confirm">Type <strong>DELETE</strong> to confirm</label>
-        <input class="field" id="delete-confirm" autocomplete="off">
-        <button class="btn danger" id="delete-btn" disabled>Delete everything</button>
-      </div>
-      <div class="msg warn" id="deleted-msg" hidden>Account deleted. You'll get one last text confirming it. Text "hi" to start over anytime.</div>
-    </section>
-  </main>
+      <!-- manage -->
+      <section data-screen="manage" class="screen" hidden>
+        <div class="card">
+          <div class="row"><span id="manage-logo"></span><div class="txt"><span class="eyebrow">Your account</span><h2 style="font-size:1.45rem">Settings</h2></div></div>
+          <p class="tiny muted">Opened from a one-time link texted to <span class="num">(•••) •••-0187</span>. Expires in 30 min.</p>
+        </div>
+        <div class="card">
+          <h3>Connected</h3>
+          <div class="list">
+            <div class="item"><div class="txt"><span class="t" id="m-lms">Brightspace</span><span class="s" id="m-sync">Checked 12 min ago</span></div><button class="btn soft sm" id="disconnect">Disconnect</button></div>
+            <div class="item"><div class="txt"><span class="t">Brightspace emails</span><span class="s" id="m-email">Not set up</span></div><span class="status off" id="m-email-pill">Off</span></div>
+            <div class="item"><div class="txt"><span class="t">Course outlines</span><span class="s" id="m-syl">None added</span></div><button class="btn soft sm" data-go="extras">Add</button></div>
+          </div>
+        </div>
+        <div class="card"><h3>Texts</h3><div class="list" id="m-prefs"></div><p class="tiny muted">Change these by text, like "stop morning texts".</p></div>
+        <div class="card" id="delete-panel">
+          <h3>Delete account</h3>
+          <p class="small muted">Removes your courses, deadlines, outlines, grades and messages. This can't be undone.</p>
+          <label class="small" for="delete-confirm">Type <strong>DELETE</strong> to confirm</label>
+          <input class="field" id="delete-confirm" autocomplete="off" style="box-shadow:none; background:var(--chip)">
+          <button class="btn danger" id="delete-btn" disabled>Delete everything</button>
+        </div>
+        <div class="msg warn" id="deleted-msg" hidden>Account deleted. You'll get one last text confirming it. Text "hi" to start over.</div>
+      </section>
+    </main>
+  </div>
 
   <aside class="rail">
     <div class="note small">
       <strong>Clickable mockup</strong>
-      <span class="muted">The setup pages a student sees after texting the number. Nothing you type is saved or sent anywhere. Try a wrong link on the Connect step to see the error messages.</span>
+      <span class="muted">The setup a student sees after texting the number. Nothing you type is saved or sent. Try a wrong link in the 3-tap path to see the errors.</span>
     </div>
-    <div class="note small" style="margin-top:20px; border-left-color: var(--accent)">
-      <label class="check"><input type="checkbox" id="onetap-toggle" checked><span><strong>School approved one-tap connect</strong></span></label>
-      <span class="muted">One-tap uses Brightspace's official sign-in and needs each school to approve the app. No school has yet. Untick to see today's 3-tap fallback.</span>
+    <div class="note small" style="margin-top:12px">
+      <label class="check"><input type="checkbox" id="onetap-toggle" checked><span><strong>School approved one-tap</strong></span></label>
+      <span class="muted">One-tap uses Brightspace's official sign-in and needs each school to approve the app. None has yet; untick to see today's 3-tap fallback.</span>
     </div>
     <nav id="jump" aria-label="Jump to screen"></nav>
   </aside>
 </div>
 
 <script>
+// Logos: favicons via Google's favicon service / school sites, embedded so the page needs no external images.
+// McMaster, Western and uOttawa had no usable icon, so they use a monogram in school colours.
+const LOGOS = {
+ "brock": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAMAAAD04JH5AAAAaVBMVEXMAAD////LAADeYGD43t7YTU3uw8PRLi70ycn54eHSKCjYVlbPDQ3sp6f309PSNTX++vr98/Pwvb387OzpmJjusrLzzc3dZ2fonZ3XRET219fmkJDQHh7gdnbSFRXYPT3icXHif3/jhobkHqJIAAADIUlEQVR4nO2a25KiMBCGkwhyEghnQRSZ93/IwapZ15VmJ0l35Cb/dar6sxM63b9hzMnJycnJycnJ6RcJZVmK77fH39Vcrv7NDoM4cBXJoqqierLAoAjwo+KcUyPoASxqDiMpgjYAl01CSaAPwHlUMzoEEwAuSzoCIwDO2xsVgSEAbwMiAlMAXsY0BMYA/EwSHwEgJ5IUmANwb28AfqcgwAB4BPFRAAVFCiCAYsj+aPCq/xCU+PggQOvnT029312iDYCMoBpBAGH83o0lcB4qgj0AAVY/TNwaCRGcPwXARFxCACk6/gYAsK6HdqEZLQEAmRUpAEBwI6lmgIkJOAVH/GegnAEmivXKFn8hKWeACQ9YmX8yA9m+ZwDMQHPDxkeeAWt1APoM4/VXIC+2KiG0sF4vjAhmJNUMiBy4EtsTOr5qBgRUCGVtqSEBbkN2Xi/jFcWc/DvAw5TIQyA+JziCGx1Rzk5PjYHfQffQcgQJwsMAVZP+VXPcaMgkjU1g3hXXFOERAARVGAVQnnYdz4uUzCIxAvDmXT2iKO0JbTJtAJlOpF6lfgaKtmOECGY23RU/D6AAlrG02/czfNjWRJaxcSWURKUI4ZCEJEcRY9FQGCQoABKvEvSI2vBFbRaB5sSiqrPTFWd9/KKgT+YzMJY9ZG86fv/HbprhvuhqJQNgWz4eIYAQXRLVRzMBukQ+dg80pmMG7QLaJ1Ofjpm4AwDF5zLARAB9C8j4OhlgDBiQOdak0QEQXwDAwQrAxtorUBKx/alWBu6AS/O1dwawHgH6DGBndJ0MnCCXws4WwIUoHwCA6wcBZiA+x7oEGndBAP5vg+0I1G9DBm2ArVK8XiZ6wCpeVFm5jN7/NWOjn270hVau46FLXnTo5ku51ZbaaUhk9I+A+vtUFiPj4+aCpQxh4yMBMrxXggKQ2DqMBSgJHvNgACoKsxYDgL2HsAAkbj0C4EIRHuERXYjMWkOAaKYyi80AmoQmuiHAcCV81akP4HUjpVmsBSCrqqR+2iuSyFPQMGRtWNYHSpv6R6Ovon4KbszS8+6d35Y7OTk5OTk5OVnXN+Z6MJ60ass8AAAAAElFTkSuQmCC",
+ "carleton": "data:image/png;base64,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",
+ "guelph": "data:image/png;base64,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",
+ "lakehead": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAYCklEQVR4AeydBXzbSBbGj/kuzFwKlZmZmZmZmZmZmZmZuQ3sbsPMscPMzIlzX0+32kRRZMWuHLud+b3u1tIIqvfXvDdv3mh+V15NIYUUAgcpBA5SCBykfJ9wkELgIIXAQQqBgxQCBykEDlJIIXCQQuAghcBBCoGjLD+/KDExP1SU7eqe8dk+7dWb5PsPEy5fjTt1NubQ0YitO8JWrw1duDR4xpzASVMDRo71HzHGt88AiFeHLp5tO7o1a+Vq04QSl3rWTiZ1+Ahq0ke5NW2J83i260SdNmDEGFwlaNK04BmzQxcsFq9cg3uIOXgk7tQZ3BXuLe312ww7+2wX17zgkKL4hLK8PAJHDYtEUpyali8SZ7u6pb58nXjjVuyxExEbt+BxB06c6jd4uFeXntCrcx1LqErVxdmiPgjz6tzDb9CwwAlTQucvDl+/CWQnXruR+uJllrMLngOeBp7JjwKHpLS0OCkp18c3/f0H6D76wOGw1euCJ0/DywetO5nVYz5EImb18GS8e/QJmjhFvHJ19L6Diddvpr99l+PlXZSYJCkpVT04ygoK8sXiTHvHpJu3o/cfFC1aiobXs00HZ/P6RN/fFh33Fm39ho4ULVgStXsf3jcYWVhbmF2lgKMkPR0Upzx+GnP4mGjJCtwoWkuitloXt8Yt/AYMwWuJ5jn5wSM4ZzBSioPDd8AQV9umRA0qJK42jX37DYZ/IzgcqvuMiBA4iBA4iBA4iBA4iBA4iBA4iBA45BVH0/qnrDtObTWmVZdFBr02QPCXzY372Js1WN10YIsui/V7bTTstaFN54WzWo48Z9X+Z1MSaP++4IBG79VrftGy7VGbzjsb9VzRdNDkVmP7t59ev/uqP/Xf/bsBe6vKPwftYd3+l/67rLuvGNh+2rRWo1c1HbirYc9j1p0vW7a5V6/ZLyZ1VU9bBI7HdZtAr9xiM/X47L0PN16167LmFr2x98Z7G284Tjv8os6Uk1LP8MHc6nvQH4HjT4P3G085Bd2vuPj5jkNgQnpuhdH78u7r76AOKKl40YjEzOuf/Jec+9h17W29CSd+P1AZ4XA2l1aHwPGTab0HdZtesGy337bb2ib9J7QeR+lv0LaHAVEpyZlSEl5AACoP2fGIa/hXIknMyPWLTAYr1MmntxyNax2w7XbBsu3Duk1rxTsJ6GMipQ6BY59td9aWf8rhl/RJ5ISDLqjGei34uYp/9PHr9PhWJnD8YeBerZEHTcYepn5OO/JKODi6zTvdfPoJzREHawsOV0uL3OuafOsTOJ44hVLuAvUTWhcOjozcQvw88tSttuDw62Ja+l6NwEHgYBHROKNyx/+4NzIncBA4mBK7TB9wBPQ2IXAQOJiSul8HcIRNNiRwEDiYkntDE3DEr9UjcBA4mFL2UQ1wpB/V/lHgIHD49zBxMpVezaOpOciA5N/T4BlLheuq2nAQOEKGGYdNlO5GBPQ1oeCQ2P2HTxA9cpaBZ3Ozmt2MqZLBQeDwaWdW/FLdzcqCu1r4VEOQQYlXSylaR5tR8kq9RsoWjzcicAgOB9p/Wnl8xKWORbnDfxI2SHEz49fr0XAEDzaW2q/Ju63B/x7iVumFDDcmZkURLUfSdl3fjqb8H2jhE3WJ/X98OnAdknFMm4YjcrYBR83Afiaok3ZYmz8ZiMqj2VAEHAQO7zZmJa/VAnrxjVZlndGCOrMvanFoqOCBBg1H4hZdjnYIHivqQOU8yUDloIHGinNIic+RuFkXPU+6/ecWKJvSOgLk1XU90LTQcGSd1aruVNGL9Kk64omGPMnIOq9FeisKhcO9oTkGySR2tL65BGaC0mjxc3XXBhasTRH20lL0VJ31POieULEQiH9PE+6OCbwcuuaPCwdSv5Czc+a156KzHzCmv+6qfZ9N91C58YJLyy98QgoItp974xUckyYHHFwvccRMA+6awUOMacWzZmwED/2tAiUu9Sy4/RI3G3MOMui2KuOk9o8V58jMLYSm33qE73voPHbfM+T8YRcfMZp8asKB5wceubz3jMAZcB554HCpa1H0TJ3SQcxSfXo7d8MA8+HdzozZtMw1YMDh28mUA6CSt2pSyaDP86PA8ZchB/427GB1uv/XiMPqo48wNmqOPfqP4YeqOwRnQzqqzHEORLdoNSRs1K3O33S2kOJSoPvDgCN0lBEDRHR56L05VzT5kJF2UOcHipAyBDnGyABdeOb9LbsAUXw6lRl68oUHUospuWkXQNmdoJjUqx/95p5813nNLf2JzJZGZjigjLxbmrQyUvbogAP23uxDjUq6H11J9/AZGXBEL67UFMWt1Ku4N2W3jlQyEFzxbmv2/cORlVd49JkbtPvUKdTONwoeRnxaTpEcX7UqLC6NS8vxDk/67BP1+EvIlQ++YAIbZYiQBg2o5C7ALcBbXrUabH/FarBHrvV/q1b8gm4VWNQPHUvsmOhwkwFJ3qUjxMeiBIcD38OrERzcBW98SGzazwExj34JOfvaa+fdL1tu/UTJ7vtOF956v3AROwXFieMzcguKuU8lW/g881Sl9z77gparJZMPGB2G+ulABSrjJ0Nyrv5mOGCGmEZnpBE3GYCJHnn5huJm21hwOPA5Tp5wwF7ApjgHx710FV9677PnvhMmqsCpxIyVZouvGE46+ech+1GNv8DJMJlyuuXSq/223EdHZtVlO3i11z75vXYLcw2Nj0rOwiVqCgdCn+UOlZSXd1PT3bZSbwI9Gmxn6A+OKnb5djGtCkfpry6naKxR1b2Iz3KQAUncpCvEkKxH6w6Cw+HRqj1POGpFZBh4S97JVA8inhXfXcQoq+o487RWdeqHAC80KgiNUD9ZO7rOZixklH1SE2g037t7H8Hh8OrYrUZw/KvvdkyGtuy+smWXRd07zh7SburE1uPmtRi+pukATJ39Otm1QRtMQ3pnbn3IpitmTleUE9Yd35rbYIoUJsRiqu2ORr0wwRrHYqLU4HZTu3Wc07LL4gbdV2IG9j/7bpcZDo8m5lAJQ0lwLHx+7bVirI6VAIyHoRvMugvBKzqQxRoiAxkpe3WqVohbLVQumf+QEYLDgS/Lct/EGwsbWt9fsEVRgrnUNEmYHUkPZ/BKD17OomMMwfh1M/1/gNyOhQB0UJH6xQoHTAPDWlGCkRoOMmCPEB/jM1YMoGv6fPDBZMHh8B82SoWmDsOlSNqmi4Qu7mqIixe/ZDEBCHhjHBUVCu7TvVm5BHaElQw+4TgIrBXqpB9h71VxS+jcBYLDge/AqxAckMD+JnjvMfCNlBmOhiR8uiGrwnBsyAijdDr4LZ8gnFodGWio0EPmoBy+keTz10xEjtaFQ8JWrxccDtHCpaoFBwQhS0oBaB5gQTwam7MOrhbcY28eYCDoQXk5pfCRRrXczDFgDY4h9J51Tov2hDybyuiuRu89IDgcERu2qBwckIhZBhUbA6RjwdZUzRjF3loR9GsYlgKtCLrQFYOzpe/UfNrLPtoSf+6C4HDgo9qqCAckdgXD62SxNQiC1QocyEKtOLiP4V+gwOjiyjl8n/zwseBwJFy7oaJwoIlO2lE5rkDbmpV6lP/v19VU8WTAZlHDOshPQwZh1W4OtsifRpph7yg4HFgzRhXJoKML1XU+MfSaekAHbycsjoLhwCRKpB2hGeNuV+QUrBYlOBxYlEpFyaAH0LMvctkOuk+rGOG+It2/lV+wtobgcOSLw1R+URJLC0wOwHNXfkGQ5hstH9ZAEeutYDkg5VGzd2szGWKFEBxFJ+AorcD/cDaTxXRiUJAxQINFCxW0UhOWA1ISONDRiJpngOABMm4QsYZtRgeVkQbMNUfhlfLygX4TzzAoOECgD2ESZIHAccm/q8HICoAEjh6vIDh8+w9WLjNhbYFRrorDH4WPv456IN6F8BfSbaqbv4qhEzojXKkEVo+RVkILBnXRpQqbZJiwXg/JIoir0kchpT56gQFrFFi8YrWC4AiZNU8JPQmvVmbIu2TviXz+mqWBBC00Mxh/rxghxU+aKiWRoifqsHq0jfBqbYb4PdxSWBl0elnH87ARqawcY/2xR44rCI7I7TuV1tmEWcm+pClVAXjhEJNGe4NuJOyR8pCBYBcCo5gsg5GU3GuafBo2/EOkTvBMfvhIQXAk3b6j5MEuvGp04Pk7FjhbPINjOZ5eCoIDCyerwtrPXz+DQZvk70zgXkTNp90L6VKana0gOErS0it3kzoHjBkvXrYyYsv2mMNHIVG794atWhs4bpJHmw7C9lbqWWMpUyxsHrl9F3VpSOS2naHzF8Frxl6ENPCdLslnoZQksVcreWdc9May8FVjSNGbBqXvDcsdhCTS4Wvww7O5pU/v/iGz50Vs3hZz6AhW9/3fY98nXr4Ky+u7NWxWqd/eoq1CFx3GUuyRW3dkOjiWZGRw10SF9I+fwM03BAXreOOJYNVjSUkJx6WxrHeuf0DClWvieaNT9+t9s7f2g27Bh0GlorPl+SJcg+3CxeV5gaWi04X2o4DONyQj57pJ4pk1WU7OkmIpufhYHz71+cuwlWvcm7YKHDNBeDjkLBJJtpu7eOkKl7pWMlqKOpaixcuy3T1luDgYTbm5NfeGsTyvbOGbDmVxL8slNZt0A1CKfpkJpOQanHtSL9/tnCxPvbS0MCpa6eGg9ZSVheXXgyZPg7J5YgHbEXf6XHFqqvxXz3O9kvugddnHGoS/St7rFzrOKM+PlO/dKCqNvlP4tlPZZ42a+Baaef9t7xzA5Eq+KP63bdu2jWXWtje2bdu2nbEVjY2MbbM7PRP9vq//DBoP/V533/vVIsnu1Kt6p6uq65x7bsDfB2rirhsRgMOwuGqz9aRnNOzaWzZ5WsGzL+bcMyjjN3+kZf3lH2xbRYOHIV5qCwljhdShb8tA6UlL9CvWwJ/2h36eo8PNJ4nwz18O+50taey1jiT+a027vnytJcqWNMEa+idbCML3j/2/KvEjtuAvWM78whL1xkBF4E3blhHgkGCnGOi8bmu6bq263t/GLz3bu+06vdOuWrX6kQIOCQGHhIBDQsAhIeCQEHC091gxWTh+vhATlfVB6Thk7IrKCUwuyalottr0/RrGz6cXXECw8aBfGg+A70N8bnVtK1SCvoGBDB3tj82zj5rGYwQklWTrP3CcaqizySTviMi2d70pJAMjpLN5NQzcLOB4c324Ax+Etz+w9IfDdw7bFMH7YzxaPXFqccP0fQm/GrvXsb0HVnQUK11xKhlzGK26xmoGNDy55MxnX3BUBxmnsp+P3jN0YwTvz6IdUPgQzjpw7vcTDzge+IeeWI1pFl6M2B51W2yGgWNtQJqLhhk8MXYrDE9xX4yTz8f3hu5QYNfx4xG7cBvDgFANIl9eHWI3vHOrvf+xla+uCU28pGrgPPy3B29TMPDs8mbDwJFb2eLu4/5g2M5lJ5LwgHOxC1zkMIUavjnyg4+vUunogjHhowtPUdm6uqXL9b0DRLJKqezakIF/6tl12O0ZBg765gmUPTpugo8vOo1vE2sv+zSvgUWbhp2cfUPFcpT/4JP2n691wz6KTWfy7vht4Vksv5weMsuaaPwL5yfeIo653xm8XX1HBg4chy2DD6QvrAziOaSZsO2NzjUYHIfiC8w3L9IoB760pctiMDjauq08h9mmRtpvJ+w3xSXYHyYeMNvUSFt49KIpwLHiZLLZpkYatzumAIfd3VyaedrPRu0xEbfC05hnaqTh5GwicCw5nmieqZHGWm4icHDn+NZBppgXab8et890lD3FUMwwNdJWnkoxHTi4Bi6ua2/s6OUauLyx80JB7aH4/Jn7z94/5/hHn1qj+RRQ9+mvUw9N2RMPRw+fx0KKeIBLaB6goLqVUl8bgzNgvGA09LiG+cqrm59fEbQuMC0srQy6hCHTNY3HSC6qP3r20oz9ZylWR6UpzbuG62ZtmLQrDmkEHD1Tbb+Ar2npZuD0ToEbbxL7wCFBS0IiQyuonBo2r3tmHTt27lKP1VUymotCSgGBUfUooU4UcEdE4tbAqWqoycDvm30c2PHufVMJxmRBLA2aq+Q9sfxQroWqPGoORtT4Ufae2DSPnC3oH1CYwHLlqqqBj90ew8D9RSbY2m2BOmdl/tabTmQKX399CwQpJcCQV2kFUNZeFgB2JaoOOqb4qULHFzGKUWo7cNhKp/oMBo4CBp0UciH/1ZCiweHQwOeSU8L/qv1QMzCVeq9k1B7k3MD+Tb/2Zq8dxkli4MpVzwx8U8jNA3eDMxOBsYSAQ0LAISHgkBBwSAg4JAQcEhICDgkBh4SAg7tOWFlI0aaOvl5rv4d777vcDzFLMX3YUWgUAYdLQUZXSGqpPUlV24Bx4JKblLW/TTtM+tpNUqN3P7ycfLXHFp2GGYnLqbINaOzxhXyXq25Syn40fCcEza053KQ7j9wSReZ7ZVOX5h+DjNJGqIZnlgUm5FZ7MTjgl8mX5M2Rykza58kLReoZZzIWn1oSQIKy68Qm6aZPLD4DmFR+rEnSIVfxu0PcS5MEQPMOX4ATVjlwOJfX1oZ+6rl1/1F8Xbvm5dvKzsjsm+wJYK7hrzFlUJBl//2hO1TmqcLalzV0KM+yV5GCxsADkpQMfHNoBmYWN/3Ai5dqvf7MwTL4s1G7b50sVmNy3ledTuEDcadTAvqJtJIGDAiQ6rBTaKinwsoBdQiMqAOgNLT38i7RKMGea9g1a94jC06tdDbw9NJGBwN/emmAjxxIz+XXOJ2yz72w4Rdj9tw14+hD808isPvN+H1ffmWTZxIt3/vICnYK8vYenHeC3nE+4WOKoYj2fbk2cDSIjgf+nkeWc/T2nW8rzywL0Go2pU3fd9anvsqi+9VEbSvtm29sRRTna/ccOMqpnxppMdmVPngJxveuf844omZepL28KsRnb0hJskC1q2xepH3imbWIan35+nxtYJqyqZFG0oqPcytsLvfMPubuvEgjjcMviDe+uXzyGTes8qR9+ZXN0A7+wsoGp5S6PjVi/QbB5l+UPaSlJnP3kSdXc8OI5fQb68JGb42mkSh27+xjXJDD4+j92rhZ53LzxZXBDIeuh2yI4EmgZDW0T526N97v9BzQ6L8Zt0/ZfEGAYTGLLTzUuQNmEoqLlDI8uMEKDIWG11ATd8XFZFU6dhbHox4WGsR87TXl1Myfpxwi8c4fxT4IZJA+uDVZfFLh6tD1KHAQ3xqW+csxyo2qsaOH7oInUjBS6MPBG8LdtaLAfh/yz3+VYMy1K4v/x59ey3E9KrNCvYIBD2uS1r/x+la3bMsRZKh/T3CtDIHeoamdcopMC5Pj7zLBXZE5f5x0gLUafvLDT66mwcf+ZOQu2Gr0QVtCMxE+6aG9g6w/nFAAI8+mg2yMUwJdQ8bCAQEdBGYcILjyd1H8oWAlw3oFORljROfBeBk1nwGegXkgBx++XjSkEiIwlhBwSAg4JAQcEgIOCQkBh4SAQ0LAISHgkBBwKLXyjM6qJFuQjGpuuyHrabDnC45cxAuWpDHoDP0y+fAaR7q36Fgi1CvJknSNbIAngQcmfdwYzkzAkVXehPM8CcqkaDsl9387fv+cg+fh27RyWyB3nrqvkCCuVK8lEx8GR3cdl4ADZQPZrb9XWm+QTH+Irg6lfhDUhBizLRptkbJi2Jh0Y6st4NArBq8P1yQzFlkGLtIuyvxxmsb8WquMm9fXhQk4dAmI+6EbIzTU+UHNP7s8kAMKWAlPL8fmBRqdQwwlO6hYjhkGjg8aJnOTqE0lEAGHjrEmINUbyxyjLATcsq3oHhRi8qK0bDay/bF5ciD1XFQ0dXLAND8yEL1ijCZfZT0deMZxLDAzMnDwQQst9xyGBSu23TzOVI1MiI3B6XIJZnyQvUJek3mQ8cNhO020lQi3wjX5zP3nKKtpeOoi1+ckUwm3YrqgTqfdJNSQ9p3B2y5eqhPizbzBp3ba3gQPLyEkIFFu0jsWDKHsqQv82/H7PIMMSpDmV7UKZe9NQeLk9vBsuxm0Tu1LL2+CcRU9h7cGXDll37V1P6bB1y89kWRIOWABh/ZGdY8vPq0JLMi1R9pzM6Mr4PCB7zL4R6uBBZqB/yuRIeAQiCAnG70tipoYoiH1i8BNBSWH02+8uCHMP3KhubNPBMZ+F9Ut3TP2nf3s8xtuvehkdUE8rJ8+WcDhNQIzigM9tTSAgk7cjqw4mYwflc59CjgkBBwSAg4JAYeEhIBDQsAhIeCQEHBICDgkBBwSAg4JAYeEgENCwCEhcQPRpCM28nswhgAAAABJRU5ErkJggg==",
+ "laurentian": "data:image/png;base64,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",
+ "laurier": "data:image/png;base64,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",
+ "queens": "data:image/png;base64,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",
+ "tmu": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAC4ElEQVRoge2Zy2sTQRzHv7ubNEkt1hfBGqSYtL4utmDxAbb1UUSoLzz4iCKIevLi3+DBg5fc1ZuhqJdGPVmwrVbqoyDUgg+S0BRMa2ttibFJ8xoP0U12N7s77m66BPZzm19mZr/fnd/8ZtgwhBAYSoQxeEJl2JV8WDWwDJiNZcBsLANmU/MGGPTeXdGD538ggWuqfWp+BSwDZmMZMBvLgNnUvAEbbUeGYYQBQkB7AoqH/h1uCFQGsv1XYOOEi9VxM4Sx8Jzq2CNtHgzcOiaJM8fvUUpURjWFbBwrffsAOI6RmKpEfH5JmzJKVBXYZUSO3jmB60e3K45tcNoxFjipTRklqgZSmVzFHGYY4EbvTsWxp/c1w1VHvc00oasK7di8Bu3e9bK/+7tb9ExPhe4yeulQa8W4u9GFnnaP3ulV0W3gfKcPHCvNsXOdXrCVcs9gdBvYuNaFw7s2SeIXunx6p6ZCk4HYbFLQFud6S9Nq7Nnm5tvh6YSWx1ChycDDV1G8+1o6xM7s34J6R6naiN9+IDShUZ46VAbEufzs/RQCT0qiVjltOLW3mW+Xr8j8r2U8//BNr055bTSd8gXpxWVwPC5oXzxYFL27dQO2ehr5+OORKLK5gh6NimgysJjMYGYhhdHPs3ysp80Dd6ML/i7hfggORQyQKY+mPfB9MQUAeDAY5mM2joW/24ezB7x8bGouidefZnRKVIbKgFw1fzQSRS5fSo/blzvQtK6eb/cNR0AIMJdI6RKphKoBh50DKzqo/iXUj0RasEEddk7QLzhcTJ90Jq9TpjyqBgghkstcebM8jcqZiC3g4+TPYv8qnsiqBvIFAkY2iYDQ2xh+p3OSeHCoZKyaVwoqA/mCfBlcWs6h/82kJN73slR9qnklUjXgrOPAscJu4n827w98EbRfjMcF1w1xfyPPBaqv0w1OO5LprGEPpYU8vaq6dlRl1AzxtNT8dyHLgNlYBszGMmA2fwBVysBs938qpQAAAABJRU5ErkJggg==",
+ "waterloo": "data:image/png;base64,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",
+ "windsor": "data:image/png;base64,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"
+};
 const SCHOOLS = [
-  // rootOu: the school's top org unit, seen in real feed UIDs ("6606-…@learn.uwaterloo.ca"); its calendar shows all courses
+  // rootOu: the school's top org unit, seen in real feed UIDs ("6606-…@learn.uwaterloo.ca")
   { slug: "waterloo", name: "University of Waterloo", lms: "LEARN", host: "learn.uwaterloo.ca", rootOu: 6606 },
   { slug: "laurier", name: "Wilfrid Laurier University", lms: "MyLearningSpace", host: "mylearningspace.wlu.ca", rootOu: 6605 },
   { slug: "tmu", name: "Toronto Metropolitan University", lms: "D2L Brightspace", host: "courses.torontomu.ca" },
-  { slug: "mcmaster", name: "McMaster University", lms: "Avenue to Learn", host: "avenue.cllmcmaster.ca" },
+  { slug: "mcmaster", name: "McMaster University", lms: "Avenue to Learn", host: "avenue.cllmcmaster.ca", mono: "Mac", color: "#7A003C" },
   { slug: "queens", name: "Queen's University", lms: "onQ", host: "onq.queensu.ca" },
-  { slug: "western", name: "Western University", lms: "OWL Brightspace", host: "westernu.brightspace.com" },
+  { slug: "western", name: "Western University", lms: "OWL Brightspace", host: "westernu.brightspace.com", mono: "W", color: "#4F2683" },
   { slug: "guelph", name: "University of Guelph", lms: "CourseLink", host: "courselink.uoguelph.ca" },
   { slug: "brock", name: "Brock University", lms: "Brightspace", host: "brightspace.brocku.ca" },
   { slug: "carleton", name: "Carleton University", lms: "Brightspace", host: "brightspace.carleton.ca" },
-  { slug: "uottawa", name: "University of Ottawa", lms: "Brightspace", host: "uottawa.brightspace.com" },
+  { slug: "uottawa", name: "University of Ottawa", lms: "Brightspace", host: "uottawa.brightspace.com", mono: "uO", color: "#8F001A" },
   { slug: "windsor", name: "University of Windsor", lms: "Brightspace", host: "brightspace.uwindsor.ca" },
   { slug: "lakehead", name: "Lakehead University", lms: "myCourseLink", host: "mycourselink.lakeheadu.ca" },
   { slug: "laurentian", name: "Laurentian University", lms: "D2L", host: "learn.laurentian.ca" },
 ];
 
-// Example results shaped like the real first-fetch findings (docs: spikes/brightspace_ical/findings).
+// Example results shaped like the real first-fetch findings (spikes/brightspace_ical/findings). days = deadlines per day, next 14 days.
 const EXAMPLES = {
   waterloo: {
     courses: [
@@ -486,9 +505,10 @@ const EXAMPLES = {
       { code: "MATH 137", name: "Calculus 1 for Honours Mathematics", upcoming: 0 },
       { code: "MTHEL 99", name: "Math Elements", upcoming: 0 },
     ],
+    days: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], week: 0, exams: 0,
     next: "MATH 135 Bonus Quiz 1, Mon Dec 7 at 4:05 PM",
     tomorrow: "Nothing due tomorrow in your calendar.\n\nHeads up: CS 115 and MATH 137 don't post deadlines to LEARN. Send me their outlines and I'll track those too.",
-    finished: "I don't see an econ course in your calendar. Your courses are MATH 135, CS 115, MATH 137 and MTHEL 99.",
+    finished: "I don't see an econ course. Your courses are MATH 135, CS 115, MATH 137 and MTHEL 99.",
     morning: "Good morning 👋 Nothing due today.\n\nNext up: MATH 135 Bonus Quiz 1, Dec 7.",
   },
   laurier: {
@@ -496,6 +516,7 @@ const EXAMPLES = {
       { code: "EC 120", name: "Intro To Microeconomics", upcoming: 26 },
       { code: "BU 111", name: "Understanding the Business Environment", upcoming: 11 },
     ],
+    days: [0, 2, 0, 2, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0], week: 4, exams: 0,
     next: "EC 120 Ch. 5 EOC Problems, Tue Oct 6 at 10:00 AM",
     tomorrow: "2 things due tomorrow (Tue):\n• EC 120 Ch. 5 EOC Problems, 10 AM\n• EC 120 Ch. 7 Podcast Assignment, 10 AM",
     finished: "Which one? You have 2 EC 120 items due tomorrow:\n• Ch. 5 EOC Problems\n• Ch. 7 Podcast Assignment",
@@ -508,6 +529,7 @@ const GENERIC = {
     { code: "PSYC 100", name: "Introduction to Psychology", upcoming: 6 },
     { code: "ECON 101", name: "Principles of Microeconomics", upcoming: 0 },
   ],
+  days: [0, 1, 0, 2, 1, 0, 0, 0, 1, 0, 3, 0, 0, 1], week: 4, exams: 1,
   next: "BIOL 101 Lab Report 2, Thu Oct 8 at 11:59 PM",
   tomorrow: "1 thing due tomorrow: PSYC 100 Quiz 3 at 11:59 PM.",
   finished: "Marked ECON 101 Problem Set 2 done ✅",
@@ -515,34 +537,35 @@ const GENERIC = {
 };
 
 const STEP_SCREENS = { welcome: 1, school: 2, connect: 3, oauth: 3, connecting: 3, connected: 3, extras: 4, prefs: 5 };
-const TITLES = { welcome: "Welcome", school: "Your school", connect: "Connect", oauth: "Connect", connecting: "Connect", connected: "Connect",
-  extras: "Extras", prefs: "Texts", done: "Done", manage: "Manage" };
+const TITLES = { welcome: "Welcome", school: "School", connect: "Connect", oauth: "Connect", connecting: "Connect",
+  connected: "Connected", extras: "Extras", prefs: "Texts", done: "Done", manage: "Manage" };
 const JUMP = [["sms", "Text that starts it"], ["welcome", "1 · Welcome + consent"], ["school", "2 · Pick school"],
-  ["connect", "3 · Connect Brightspace"], ["oauth", "3 · Sign in on school site"], ["connected", "3 · Courses found"], ["extras", "4 · Extras"],
-  ["prefs", "5 · Text settings"], ["done", "Done"], ["sms-end", "Back in Messages"], ["manage", "MANAGE page"]];
+  ["connect", "3 · Connect Brightspace"], ["oauth", "3 · Sign in on school site"], ["connected", "3 · Courses found"],
+  ["extras", "4 · Extras"], ["prefs", "5 · Your texts"], ["done", "Done"], ["sms-end", "Back in Messages"], ["manage", "MANAGE page"]];
 
-const state = { school: SCHOOLS[1], history: [], screen: "sms", email: false, outlines: new Set(), feedOk: false, oneTap: true };
+const state = { school: SCHOOLS[1], history: [], screen: "sms", email: false, outlines: new Set(), oneTap: true };
 const $ = (sel) => document.querySelector(sel);
 const data = () => EXAMPLES[state.school.slug] || GENERIC;
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const CHECK = '<svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:3"><path d="M20 6L9 17l-5-5"/></svg>';
+
+function logoHTML(s, size = "") {
+  if (LOGOS[s.slug]) return `<span class="logo ${size}"><img src="${LOGOS[s.slug]}" alt="" width="34" height="34"></span>`;
+  return `<span class="logo mono ${size}" style="background:${s.color || "#555"}" aria-hidden="true">${esc(s.mono || s.name[0])}</span>`;
+}
 
 function go(name, { push = true } = {}) {
-  if (name === "connected" && !state.feedOk) state.feedOk = true;  // jumping ahead from the rail
   if (push && state.screen !== name) state.history.push(state.screen);
   state.screen = name;
-  document.querySelectorAll("[data-screen]").forEach((s) => { s.hidden = s.dataset.screen !== name; });
-  const inFlow = !["sms", "sms-end"].includes(name);
-  $("#chrome").hidden = !inFlow;
+  document.querySelectorAll("[data-screen]").forEach((el) => { el.hidden = el.dataset.screen !== name; });
+  $("#chrome").hidden = ["sms", "sms-end"].includes(name);
   $("#screen-title").textContent = TITLES[name] || "";
   const step = STEP_SCREENS[name];
   $("#progress").hidden = !step;
-  $("#stepnote").hidden = !step;
-  if (step) {
-    document.querySelectorAll("#progress span").forEach((s, i) => s.classList.toggle("on", i < step));
-    $("#stepnote").textContent = `Step ${step} of 5`;
-  }
+  if (step) document.querySelectorAll("#progress span").forEach((el, i) => el.classList.toggle("on", i < step));
   render(name);
   document.querySelectorAll("#jump button").forEach((b) => b.classList.toggle("on", b.dataset.to === name));
-  $(".phone").scrollIntoView({ block: "start" });
+  $(".device").scrollIntoView({ block: "start" });
 }
 
 function back() {
@@ -555,8 +578,9 @@ function renderSchools() {
   const list = SCHOOLS.filter((s) => !q || `${s.name} ${s.lms} ${s.slug}`.toLowerCase().includes(q));
   $("#schools").innerHTML = list.length ? list.map((s) => `
     <button class="school" role="listitem" data-slug="${s.slug}" aria-pressed="${state.picked === s.slug}">
-      <span>${s.name}</span><span class="lms">${s.lms}</span><span class="host">${s.host}</span>
-    </button>`).join("") : `<p class="muted small">No match. Only Ontario Brightspace schools for now.</p>`;
+      ${logoHTML(s)}<span class="txt"><span class="name">${esc(s.name)}</span><span class="lms">${esc(s.lms)}</span></span>
+      <span class="pick">${state.picked === s.slug ? CHECK : ""}</span>
+    </button>`).join("") : `<p class="muted small" style="text-align:center">No match. Only Ontario Brightspace schools for now.</p>`;
 }
 
 function render(name) {
@@ -566,23 +590,37 @@ function render(name) {
   if (name === "connect") {
     $("#onetap").hidden = !state.oneTap;
     $("#fallback").hidden = state.oneTap;
-    $("#connect-h").textContent = `Connect ${s.lms}`;
+    $("#connect-logo").innerHTML = $("#fallback-logo").innerHTML = logoHTML(s, "lg");
+    $("#connect-school").textContent = s.name;
+    $("#connect-h").textContent = $("#fallback-h").textContent = `Connect ${s.lms}`;
     $("#open-cal").href = s.rootOu ? `https://${s.host}/d2l/le/calendar/${s.rootOu}` : `https://${s.host}/d2l/home`;
   }
   if (name === "oauth") $("#oauth-host").textContent = s.host;
-  if (name === "connecting")
-    $("#connecting-h").textContent = state.oneTap ? `Reading your ${s.lms} courses…` : "Reading your calendar…";
+  if (name === "connecting") $("#connecting-h").textContent = state.oneTap ? `Reading your ${s.lms} courses…` : "Reading your calendar…";
   if (name === "connected") {
     const total = d.courses.reduce((n, c) => n + c.upcoming, 0);
     const quiet = d.courses.filter((c) => c.upcoming === 0);
-    $("#found-h").textContent = `Found ${d.courses.length} courses and ${total} upcoming deadlines`;
-    $("#found-sub").textContent = `Next up: ${d.next}.` + (state.oneTap ? " Submissions and grades will update automatically." : "");
+    $("#found-src").textContent = s.lms;
+    $("#found-h").textContent = `${d.courses.length} courses`;
+    $("#found-sub").textContent = `Next up: ${d.next}.`;
+    $("#found-chips").innerHTML = `<span class="chip">${total} upcoming</span>` +
+      (state.oneTap ? `<span class="chip">Submissions synced</span>` : "") +
+      (quiet.length ? `<span class="chip">${quiet.length} need an outline</span>` : "");
+    $("#found-tiles").innerHTML = [
+      ["Courses", d.courses.length, '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/>'],
+      ["Upcoming", total, '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/>'],
+      ["This week", d.week, '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'],
+    ].map(([lbl, n, icon]) => `<div class="tile"><svg class="i ic" viewBox="0 0 24 24">${icon}</svg><span class="big">${n}</span><span class="lbl">${lbl}</span></div>`).join("");
+    const busy = d.days.filter((n) => n > 0).length;
+    $("#grid-note").textContent = busy ? `${busy} days with deadlines` : "No calendar deadlines";
+    $("#grid14").innerHTML = d.days.map((n, i) =>
+      `<span class="cell ${n >= 2 ? "c2" : n === 1 ? "c1" : ""} ${i === 0 ? "today" : ""}" title="${n} due"></span>`).join("");
     $("#courses").innerHTML = d.courses.map((c) => `
-      <div class="course"><span class="code">${c.code}</span><span class="sub">${c.name}</span>
-      ${c.upcoming ? `<span class="pill">${c.upcoming} upcoming</span>` : `<span class="pill warn">No deadlines posted</span>`}</div>`).join("");
+      <div class="item"><div class="txt"><span class="t">${esc(c.code)}</span><span class="s">${esc(c.name)}</span></div>
+      ${c.upcoming ? `<span class="status">${c.upcoming} upcoming</span>` : `<span class="status warn">No deadlines posted</span>`}</div>`).join("");
     $("#gap-msg").hidden = !quiet.length;
     $("#gap-msg").textContent = quiet.length
-      ? `${quiet.map((c) => c.code).join(", ")} ${quiet.length > 1 ? "don't" : "doesn't"} post deadlines to the ${s.lms} calendar. Add ${quiet.length > 1 ? "their" : "its"} course outline${quiet.length > 1 ? "s" : ""} on the next step so nothing slips.` : "";
+      ? `${quiet.map((c) => c.code).join(", ")} ${quiet.length > 1 ? "don't" : "doesn't"} post deadlines to ${s.lms}. Add ${quiet.length > 1 ? "their outlines" : "its outline"} on the next step so nothing slips.` : "";
   }
   if (name === "extras") {
     $("#sender-guess").textContent = `noreply@${s.host}`;
@@ -590,22 +628,22 @@ function render(name) {
     const courses = [...d.courses].sort((a, b) => a.upcoming - b.upcoming);
     $("#syl-courses").innerHTML = courses.map((c) => {
       const added = state.outlines.has(c.code);
-      return `<div class="course"><span class="code">${c.code}</span>
-        <span class="sub">${added ? "Outline added. You'll get a text if anything needs confirming" : c.upcoming ? "Adds grade weights" : "Recommended: no deadlines in the calendar"}</span>
-        ${added ? `<span class="pill">Added ✓</span>` : `<label class="btn ghost small" style="grid-column:2;grid-row:1/span 2">Upload<input type="file" hidden data-outline="${c.code}" accept=".pdf,.doc,.docx,image/*"></label>`}</div>`;
+      return `<div class="item"><div class="txt"><span class="t">${esc(c.code)}</span>
+        <span class="s">${added ? "Added. You'll get a text if anything needs confirming" : c.upcoming ? "Adds grade weights" : "Recommended: nothing in the calendar"}</span></div>
+        ${added ? `<span class="status">Added</span>` : `<label class="btn soft sm">Upload<input type="file" hidden data-outline="${esc(c.code)}" accept=".pdf,.doc,.docx,image/*"></label>`}</div>`;
     }).join("");
     $("#syl-pill").textContent = `${state.outlines.size} added`;
-    $("#syl-pill").className = state.outlines.size ? "pill" : "pill off";
-    $("#email-pill").textContent = state.email ? "Set up ✓" : "Not set up";
-    $("#email-pill").className = state.email ? "pill" : "pill off";
-    if (!d.courses.some((c) => c.upcoming === 0)) $("#extra-syllabus").open = false;
+    $("#syl-pill").className = state.outlines.size ? "status" : "status off";
+    $("#email-pill").textContent = state.email ? "Set up" : "Not set up";
+    $("#email-pill").className = state.email ? "status" : "status off";
   }
   if (name === "done") {
-    $("#summary").innerHTML = `
-      <div class="setting"><span>${s.lms} ${state.oneTap ? "account" : "calendar"}</span><span class="pill">Connected</span></div>
-      <div class="setting"><span>Notification emails</span><span class="pill ${state.email ? "" : "off"}">${state.email ? "Forwarding" : "Later"}</span></div>
-      <div class="setting"><span>Course outlines</span><span class="pill ${state.outlines.size ? "" : "off"}">${state.outlines.size || "Later"}</span></div>
-      <div class="setting"><span>Morning summary</span><span class="pill ${$("#morning").value === "Off" ? "off" : ""}">${$("#morning").value}</span></div>`;
+    const morning = $("#morning").value;
+    $("#summary").innerHTML = [
+      `${s.lms} connected`, state.email ? "Emails forwarding" : null,
+      state.outlines.size ? `${state.outlines.size} outline${state.outlines.size > 1 ? "s" : ""}` : null,
+      morning === "Off" ? "No morning text" : `Morning text ${morning}`,
+    ].filter(Boolean).map((t) => `<span class="chip">${esc(t)}</span>`).join("");
   }
   if (name === "sms-end") {
     const total = d.courses.reduce((n, c) => n + c.upcoming, 0);
@@ -618,19 +656,16 @@ function render(name) {
     $("#morning-text").textContent = d.morning;
   }
   if (name === "manage") {
-    $("#m-lms").textContent = `${s.lms} ${state.oneTap ? "account (read-only)" : "calendar"}`;
+    $("#manage-logo").innerHTML = logoHTML(s, "lg");
+    $("#m-lms").textContent = `${s.lms} ${state.oneTap ? "account" : "calendar"}`;
     $("#m-email").textContent = state.email ? "Forwarding from your school inbox" : "Not set up";
     $("#m-email-pill").textContent = state.email ? "On" : "Off";
-    $("#m-email-pill").className = state.email ? "pill" : "pill off";
+    $("#m-email-pill").className = state.email ? "status" : "status off";
     $("#m-syl").textContent = state.outlines.size ? [...state.outlines].join(", ") : "None added";
-    const pref = (id) => $(id).value ?? "";
-    const on = (id) => ($(id).checked ? "On" : "Off");
-    $("#m-prefs").innerHTML = `<h3>Texts</h3>
-      <div class="setting"><span>Morning summary</span><span class="pill ${pref("#morning") === "Off" ? "off" : ""}">${pref("#morning")}</span></div>
-      <div class="setting"><span>Heads-up before deadlines</span><span class="pill ${pref("#offset") === "Off" ? "off" : ""}">${pref("#offset")}</span></div>
-      <div class="setting"><span>Change alerts</span><span class="pill ${on("#alerts") === "Off" ? "off" : ""}">${on("#alerts")}</span></div>
-      <div class="setting"><span>Quiet hours</span><span class="pill ${on("#quiet") === "Off" ? "off" : ""}">${on("#quiet")}</span></div>
-      <p class="muted">Change these by text, e.g. "stop morning texts".</p>`;
+    const rows = [["Morning summary", $("#morning").value], ["Heads-up", $("#offset").value],
+      ["Change alerts", $("#alerts").checked ? "On" : "Off"], ["Quiet hours", $("#quiet").checked ? "On" : "Off"]];
+    $("#m-prefs").innerHTML = rows.map(([k, v]) =>
+      `<div class="item"><div class="txt"><span class="t">${k}</span></div><span class="status ${v === "Off" ? "off" : ""}">${esc(v)}</span></div>`).join("");
   }
 }
 
@@ -650,16 +685,23 @@ function validateFeed(raw, school) {
   return null;
 }
 
+function finishConnect() {
+  go("connecting");
+  setTimeout(() => { if (state.screen === "connecting") go("connected"); }, 1400);
+}
+function connectWith(link) {
+  const err = validateFeed(link, state.school);
+  $("#feed-error").hidden = !err;
+  $("#feed-error").textContent = err || "";
+  if (!err) finishConnect();
+}
+
 // --- wiring -------------------------------------------------------------------------
 document.addEventListener("click", (e) => {
   const goBtn = e.target.closest("[data-go]");
   if (goBtn) { e.preventDefault(); go(goBtn.dataset.go); return; }
   const sch = e.target.closest(".school");
-  if (sch) {
-    state.picked = sch.dataset.slug;
-    renderSchools();
-    $("#school-next").disabled = false;
-  }
+  if (sch) { state.picked = sch.dataset.slug; renderSchools(); $("#school-next").disabled = false; }
 });
 $("#back").addEventListener("click", back);
 $("#consent").addEventListener("change", (e) => { $("#welcome-next").disabled = !e.target.checked; });
@@ -669,39 +711,26 @@ $("#school-next").addEventListener("click", () => {
   const picked = SCHOOLS.find((s) => s.slug === state.picked);
   if (picked) { state.school = picked; $("#feed").value = ""; $("#feed-error").hidden = true; go("connect"); }
 });
-function connectWith(link) {
-  const err = validateFeed(link, state.school);
-  $("#feed-error").hidden = !err;
-  $("#feed-error").textContent = err || "";
-  if (err) return;
-  state.feedOk = true;
-  go("connecting");
-  setTimeout(() => { if (state.screen === "connecting") go("connected"); }, 1400);
-}
 $("#paste-btn").addEventListener("click", async () => {
   let link = "";
-  try { link = await navigator.clipboard.readText(); } catch { /* blocked here; works on the real site */ }
+  try { link = await navigator.clipboard.readText(); } catch { /* blocked in this preview; works on the real site */ }
   // Mockup: clipboard reading is blocked inside this preview, so use an example link.
   if (!link.trim()) link = `https://${state.school.host}/d2l/le/calendar/feed/user/feed.ics?token=EXAMPLE-not-a-real-token`;
   connectWith(link);
 });
 $("#connect-btn").addEventListener("click", () => connectWith($("#feed").value));
 $("#oauth-btn").addEventListener("click", () => go("oauth"));
-$("#allow-btn").addEventListener("click", () => {
-  state.feedOk = true;
-  go("connecting");
-  setTimeout(() => { if (state.screen === "connecting") go("connected"); }, 1400);
-});
+$("#allow-btn").addEventListener("click", finishConnect);
 $("#onetap-toggle").addEventListener("change", (e) => {
   state.oneTap = e.target.checked;
   if (["connect", "oauth"].includes(state.screen)) go("connect", { push: false });
   else render(state.screen);
 });
 $("#copy-fwd").addEventListener("click", async () => {
-  const addr = $("#fwd-addr").textContent;
-  try { await navigator.clipboard.writeText(addr); $("#copy-fwd").textContent = "Copied"; }
-  catch { const r = document.createRange(); r.selectNodeContents($("#fwd-addr")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); $("#copy-fwd").textContent = "Selected"; }
-  setTimeout(() => { $("#copy-fwd").textContent = "Copy"; }, 1600);
+  const btn = $("#copy-fwd");
+  try { await navigator.clipboard.writeText($("#fwd-addr").textContent); btn.textContent = "Copied"; }
+  catch { const r = document.createRange(); r.selectNodeContents($("#fwd-addr")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); btn.textContent = "Selected"; }
+  setTimeout(() => { btn.textContent = "Copy"; }, 1600);
 });
 $("#email-done").addEventListener("change", (e) => { state.email = e.target.checked; render("extras"); });
 document.addEventListener("change", (e) => {
@@ -711,11 +740,10 @@ document.addEventListener("change", (e) => {
 $("#delete-confirm").addEventListener("input", (e) => { $("#delete-btn").disabled = e.target.value.trim() !== "DELETE"; });
 $("#delete-btn").addEventListener("click", () => { $("#delete-panel").hidden = true; $("#deleted-msg").hidden = false; });
 $("#disconnect").addEventListener("click", (e) => {
-  const b = e.target;
-  if (b.dataset.armed) { $("#m-sync").textContent = "Disconnected. Text \"connect\" to add it back"; b.hidden = true; return; }
-  b.dataset.armed = "1"; b.textContent = "Tap again to confirm"; b.classList.remove("ghost"); b.classList.add("danger");
+  const b = e.currentTarget;
+  if (b.dataset.armed) { $("#m-sync").textContent = 'Disconnected. Text "connect" to add it back'; b.hidden = true; return; }
+  b.dataset.armed = "1"; b.textContent = "Tap again to confirm"; b.classList.remove("soft"); b.classList.add("danger");
 });
-
 $("#jump").innerHTML = JUMP.map(([to, label]) => `<button data-to="${to}">${label}</button>`).join("");
 $("#jump").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-to]");
