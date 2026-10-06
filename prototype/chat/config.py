@@ -61,6 +61,8 @@ def load_settings(env_file: Path = PROTO_DIR / ".env") -> Settings:
     model = os.environ.get("LLM_MODEL") or (preset[1] if preset else "")
     needs_key = preset[2] if preset else True
     api_key = os.environ.get("LLM_API_KEY", "").strip()
+    if api_key == "paste-your-key-here":  # untouched template value
+        api_key = ""
     if not base_url or not model:
         raise SettingsError("custom provider needs LLM_BASE_URL and LLM_MODEL in prototype/.env")
     if needs_key and not api_key:

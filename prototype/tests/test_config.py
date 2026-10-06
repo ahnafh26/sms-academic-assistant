@@ -37,3 +37,10 @@ def test_unknown_provider(monkeypatch, tmp_path):
     monkeypatch.setenv("LLM_PROVIDER", "nope")
     with pytest.raises(config.SettingsError, match="LLM_PROVIDER"):
         config.load_settings(tmp_path / "missing.env")
+
+
+def test_template_placeholder_counts_as_missing(tmp_path):
+    env = tmp_path / ".env"
+    env.write_text("LLM_PROVIDER=gemini\nLLM_API_KEY=paste-your-key-here\n", encoding="utf-8")
+    with pytest.raises(config.SettingsError, match="No LLM_API_KEY"):
+        config.load_settings(env)
