@@ -107,6 +107,7 @@ class AcademicItem(Base):
     first_seen_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     last_seen_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     missing_since: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    missed_syncs: Mapped[int] = mapped_column(Integer, default=0)  # hidden after 2 consecutive misses
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 
     @property
@@ -116,7 +117,7 @@ class AcademicItem(Base):
     @property
     def actionable(self) -> bool:
         return (self.org_kind == "course" and self.category in ("deliverable", "exam") and self.in_term is not False
-                and not self.cancelled and self.missing_since is None and self.when is not None)
+                and not self.cancelled and (self.missed_syncs or 0) < 2 and self.when is not None)
 
 
 class Message(Base):
