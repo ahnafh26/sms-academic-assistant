@@ -113,9 +113,7 @@ class Agent:
                 turn.append({
                     "role": "assistant",
                     "content": result.content or None,
-                    "tool_calls": [{"id": c.id, "type": "function",
-                                    "function": {"name": c.name, "arguments": c.raw_arguments}}
-                                   for c in result.tool_calls],
+                    "tool_calls": [c.as_message_part() for c in result.tool_calls],
                 })
                 for call in result.tool_calls:
                     self.on_event("tool_call", {"name": call.name, "arguments": call.arguments})

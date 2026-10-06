@@ -17,6 +17,13 @@ class ToolCall:
     name: str
     arguments: dict
     raw_arguments: str
+    # the provider's tool-call object exactly as returned. Gemini 3 attaches a thought_signature
+    # (extra_content.google.thought_signature) that must be sent back unchanged in the next request.
+    raw: dict | None = None
+
+    def as_message_part(self) -> dict:
+        return self.raw or {"id": self.id, "type": "function",
+                            "function": {"name": self.name, "arguments": self.raw_arguments}}
 
 
 @dataclass
@@ -38,7 +45,8 @@ class OpenAICompatModel:
         import openai  # imported lazily so tests don't need network config
 
         self._openai = openai
-        self.client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=timeout, max_retries=2)
+        # free tiers have short 503 high-demand spikes; the SDK retries 429/5xx with backoff
+        self.client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=timeout, max_retries=4)
         self.model = model
         self.temperature = temperature
 
@@ -53,7 +61,10 @@ class OpenAICompatModel:
             )
         except o.AuthenticationError:
             raise LLMError("the API key was rejected; check LLM_API_KEY in prototype/.env") from None
-        except o.RateLimitError:
+        except o.RateLimitError as exc:
+            if "PerDay" in str(exc):
+                raise LLMError(f"daily free-tier limit reached for {self.model}; set LLM_MODEL to another model "
+                               "(e.g. gemini-flash-lite-latest) or wait until tomorrow") from None
             raise LLMError("rate limited by the provider (free tiers have per-minute limits); wait a bit") from None
         except o.NotFoundError as exc:
             raise LLMError(f"model or endpoint not found ({self.model}); check LLM_MODEL: {exc}") from None
@@ -73,5 +84,5 @@ class OpenAICompatModel:
             except json.JSONDecodeError:
                 args = {"__invalid_json__": raw}
             calls.append(ToolCall(id=tc.id, name=tc.function.name, arguments=args if isinstance(args, dict) else {},
-                                  raw_arguments=raw))
+                                  raw_arguments=raw, raw=tc.model_dump(exclude_none=True)))
         return AssistantTurn(content=msg.content, tool_calls=calls)

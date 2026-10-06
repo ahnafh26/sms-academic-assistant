@@ -16,7 +16,7 @@ SPIKE_DIR = REPO_DIR / "spikes" / "brightspace_ical"
 
 # provider -> (base_url, default model, needs a real API key)
 PRESETS: dict[str, tuple[str, str, bool]] = {
-    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.5-flash", True),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-flash-lite-latest", True),
     "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", True),
     "ollama": ("http://localhost:11434/v1", "qwen2.5:7b", False),
 }
