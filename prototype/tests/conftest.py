@@ -51,8 +51,12 @@ ITEMS = [
     raw_item("maint", None, "Monthly Maintenance Window", "other", due="2026-10-06T05:00:00Z",
              org_kind="institution", category="non_course"),
     raw_item("stale", "BU111", "Midterm", "midterm", start="2024-10-04T22:30:00Z", in_term=False),
-    raw_item("cancel", "CS135", "Discussion 3", "discussion", due="2026-10-08T03:59:00Z", cancelled=True),
+    raw_item("cancel", "CS135", "Discussion 3", "discussion", due="2026-10-08T03:59:00Z", cancelled=True,
+             institution="waterloo"),
     raw_item("rubric", "BU111", "Presentation rubric", "other", due="2026-10-31T17:00:00Z", category="content"),
+    # course in the feed with only a stale copied date -> "quiet" course
+    raw_item("m137-stale", "MATH137", "Write Midterm", "midterm", start="2025-10-27T23:00:00Z", in_term=False,
+             institution="waterloo"),
 ]
 
 

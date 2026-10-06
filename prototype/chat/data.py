@@ -59,6 +59,7 @@ class Store:
         self.items_path = items_path
         self.state_path = state_path
         self.items: list[Item] = []
+        self.quiet_courses: list[tuple[str, str]] = []
         self.data_as_of: datetime | None = None
         self._state: dict = {"completed": {}, "estimates": {}}
 
@@ -76,6 +77,12 @@ class Store:
             self._state.setdefault("estimates", {})
 
         self.items = []
+        # Courses present in the feed this term but with no deadlines in the calendar
+        # (real case: most Waterloo CS/MATH courses run deadlines outside LEARN).
+        all_course_codes = {
+            (r["institution"], r.get("course_code")) for r in raw_items
+            if r.get("org_kind") == "course" and r.get("course_code")
+        }
         for raw in raw_items:
             if not is_actionable(raw):
                 continue
@@ -97,6 +104,9 @@ class Store:
                 )
             )
         self.items.sort(key=lambda i: i.when or datetime.max.replace(tzinfo=timezone.utc))
+        with_items = {(i.institution, i.course) for i in self.items}
+        # a course with only stale/noise rows still counts as "enrolled, nothing published"
+        self.quiet_courses = sorted(all_course_codes - with_items)
 
     def get(self, item_id: str) -> Item | None:
         return next((i for i in self.items if i.id == item_id), None)
