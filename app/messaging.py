@@ -86,9 +86,24 @@ def send_text(session: Session, user: User, body: str, *, kind: str = "reply", d
     return msg
 
 
-def record_inbound(session: Session, user: User | None, phone: str, body: str, provider_sid: str | None) -> Message:
+def send_to_phone(session: Session, phone: str, body: str, *, now: datetime | None = None) -> None:
+    """A last text to a number with no account behind it (after deletion).
+
+    With a real transport nothing is stored; locally it's queued without a
+    user so the fake phone can still show it.
+    """
+    if _transport is not None:
+        _transport(phone, body)
+        return
+    session.add(Message(user_id=None, phone=phone, direction="out", body=body, status="queued", kind="system",
+                        created_at=now or utcnow()))
+    session.flush()
+
+
+def record_inbound(session: Session, user: User | None, phone: str, body: str, provider_sid: str | None,
+                   now: datetime | None = None) -> Message:
     msg = Message(user_id=user.id if user else None, phone=phone, direction="in", body=body,
-                  provider_sid=provider_sid, status="received", created_at=utcnow())
+                  provider_sid=provider_sid, status="received", created_at=now or utcnow())
     session.add(msg)
     session.flush()
     return msg

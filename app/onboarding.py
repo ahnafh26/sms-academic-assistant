@@ -46,7 +46,7 @@ def _schools_we_support() -> str:
     return ", ".join(names[:-1]) + " and " + names[-1]
 
 
-def _send_link(session: Session, user: User) -> str:
+def connect_link_text(session: Session, user: User) -> str:
     inst = load_institutions()[user.institution]
     raw = create_setup_token(session, user, "connect_calendar")
     minutes = get_settings().setup_link_minutes
@@ -79,7 +79,7 @@ def handle_onboarding(session: Session, user: User, text: str, *, now: datetime 
             inst = matches[0]
             user.institution, user.timezone = inst.slug, inst.timezone
             user.onboarding_step = "awaiting_connection"
-            return [f"Got it, {inst.name}.", _send_link(session, user)]
+            return [f"Got it, {inst.name}.", connect_link_text(session, user)]
         if len(matches) > 1:
             options = " or ".join(m.name for m in matches[:3])
             return [f"Did you mean {options}? Reply with the full name."]
@@ -91,7 +91,7 @@ def handle_onboarding(session: Session, user: User, text: str, *, now: datetime 
             user.onboarding_step, user.institution = "awaiting_school", None
             return [school_question()]
         if NEW_LINK.search(text):
-            return [_send_link(session, user)]
+            return [connect_link_text(session, user)]
         inst = load_institutions()[user.institution]
         return [f"Almost there: tap the link I sent to connect {inst.lms_name}. "
                 f"Reply LINK for a new one, or WRONG SCHOOL to change schools."]
