@@ -22,3 +22,17 @@ def test_fake_phone_signup_conversation(session_factory):
     dev.forget(PHONE)
     s = session_factory()
     assert s.query(User).count() == 0
+
+
+def test_briefing_command_needs_a_finished_signup(session_factory):
+    dev.send_from_phone(PHONE, "hi")
+    dev.deliver_pending(PHONE, out=lambda line: None)
+    assert dev.briefing_now(PHONE) is False
+
+    s = session_factory()
+    s.query(User).one().onboarding_step = "done"
+    s.commit()
+    lines = []
+    assert dev.briefing_now(PHONE) is True
+    dev.deliver_pending(PHONE, out=lines.append)
+    assert "Good morning!" in lines[0]

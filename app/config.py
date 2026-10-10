@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     llm_base_url: str | None = None
 
+    # background jobs (briefings, reminders, syncs): on for the deployed web process
+    run_scheduler: bool = False
+
     # product
     assistant_name: str = "Assistant"
     default_timezone: str = "America/Toronto"

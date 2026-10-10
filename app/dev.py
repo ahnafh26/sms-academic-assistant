@@ -4,6 +4,10 @@ Starts the web server (for the connect link) and opens a terminal "phone"
 that texts the assistant through the exact same code path real texts
 will use: router -> sign-up / brain -> outbox. Texts the assistant sends
 later (like "Connected ✅" after you finish the web page) pop in on their own.
+
+The scheduler runs here too, so reminders, due-soon texts and the morning
+briefing arrive like they would on a real phone. /briefing shows today's
+briefing now, and /tick runs the scheduler once without waiting a minute.
 """
 
 from __future__ import annotations
@@ -66,6 +70,31 @@ def send_from_phone(phone: str, body: str) -> None:
         handle_inbound(session, phone, body)
 
 
+def briefing_now(phone: str) -> bool:
+    """Dev only: text this number its morning briefing right now, whatever the time."""
+    from sqlalchemy import select
+
+    from .db import session_scope, utcnow
+    from .messaging import send_text
+    from .models import User
+    from .scheduler import briefing_text
+
+    with session_scope() as session:
+        user = session.scalar(select(User).where(User.phone == phone))
+        if user is None or user.onboarding_step != "done":
+            return False
+        send_text(session, user, briefing_text(session, user, utcnow()), kind="system")
+    return True
+
+
+def tick_now() -> dict[str, int]:
+    from .db import session_scope
+    from .scheduler import tick
+
+    with session_scope() as session:
+        return tick(session)
+
+
 def forget(phone: str) -> None:
     """Dev only: delete this number's student so sign-up starts over."""
     from sqlalchemy import delete, select
@@ -92,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
     _borrow_prototype_key()
     get_settings.cache_clear()
 
+    from . import scheduler
     from .brain import current_model
     from .db import configure
     from .security import normalize_phone
@@ -101,9 +131,11 @@ def main(argv: list[str] | None = None) -> int:
     _start_server(args.port)
     brain = "on" if current_model() else "off (paste a free Gemini key into prototype/.env or .env)"
     print(f"Fake phone {phone} · connect pages at http://localhost:{args.port} · AI brain: {brain}")
-    print('Text like you would on your phone. Start with "hi". Commands: /reset (start over)  /quit\n')
+    print('Text like you would on your phone. Start with "hi".')
+    print("Commands: /briefing (morning text now)  /tick (run reminders now)  /reset (start over)  /quit\n")
 
     stop = threading.Event()
+    scheduler_stop = scheduler.start(interval_seconds=30)
 
     def poll() -> None:
         while not stop.is_set():
@@ -130,10 +162,20 @@ def main(argv: list[str] | None = None) -> int:
                 forget(phone)
                 print("(this number was forgotten; text \"hi\" to sign up again)\n")
                 continue
+            if text == "/briefing":
+                if not briefing_now(phone):
+                    print("(finish signing up first)\n")
+                deliver_pending(phone)
+                continue
+            if text == "/tick":
+                print(f"(scheduler ran: {tick_now()})")
+                deliver_pending(phone)
+                continue
             send_from_phone(phone, text)
             deliver_pending(phone)
     finally:
         stop.set()
+        scheduler_stop.set()
 
 
 if __name__ == "__main__":

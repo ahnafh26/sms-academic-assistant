@@ -7,9 +7,13 @@ page. There is no student dashboard; the product is the text conversation.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
+from .config import get_settings
 from .web.routes import WEB_DIR
 from .web.routes import router as web_router
 
@@ -22,8 +26,21 @@ SECURITY_HEADERS = {
 }
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    stop = None
+    if get_settings().run_scheduler:  # briefings, reminders and background syncs
+        from . import scheduler
+
+        stop = scheduler.start()
+    yield
+    if stop is not None:
+        stop.set()
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="Texting academic assistant", docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(title="Texting academic assistant", docs_url=None, redoc_url=None, openapi_url=None,
+                  lifespan=lifespan)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
