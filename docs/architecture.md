@@ -4,7 +4,7 @@
 
 This product is a reliable academic data system that students control by text. There's no student dashboard: students talk to one shared Twilio number. Web pages exist only for one-off setup tasks (pasting an iCal URL, uploading a syllabus, OAuth, deleting an account). The database and connected sources are the source of truth. The LLM only interprets requests and writes replies, and never supplies facts.
 
-**Current status:** Phase 0, the Brightspace iCal viability spike (`spikes/brightspace_ical/`). Nothing below is built yet.
+**Current status:** the MVP in `app/` covers phases 1–8 in a simplified form (see the README): one Railway process with a scheduler thread instead of a separate worker and job queue, and SQLite locally. Syllabus, grades and source conflicts (phases 9–11) aren't built yet.
 
 **Amendments now part of the design:**
 - **`refresh_academic_data()` tool:** "refresh", "check brightspace" or "sync my courses" triggers an immediate sync of the user's connections. Rate-limited (e.g. 1 every 10 minutes and 10 a day per user, with in-flight dedupe so a second request joins the running sync). It replies "Checking LEARN…" and then a summary of the changes.
