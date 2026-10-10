@@ -16,6 +16,7 @@ scheduler tick can never send the same reminder twice.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -25,6 +26,8 @@ from sqlalchemy.orm import Session
 
 from .db import utcnow
 from .models import Message, User
+
+log = logging.getLogger(__name__)
 
 Transport = Callable[[str, str], str | None]  # (phone, body) -> provider message id
 _transport: Transport | None = None
@@ -78,10 +81,9 @@ def send_text(session: Session, user: User, body: str, *, kind: str = "reply", d
         try:
             msg.provider_sid = _transport(user.phone, body)
             msg.status = "sent"
-        except Exception as exc:  # delivery failure must not lose the conversation state
+        except Exception:  # keep the conversation state and the record; one failed send mustn't undo the turn
+            log.exception("text delivery failed for message %s", msg.id)
             msg.status = "failed"
-            session.flush()
-            raise RuntimeError(f"text delivery failed: {exc}") from None
     session.flush()
     return msg
 
@@ -93,7 +95,10 @@ def send_to_phone(session: Session, phone: str, body: str, *, now: datetime | No
     user so the fake phone can still show it.
     """
     if _transport is not None:
-        _transport(phone, body)
+        try:
+            _transport(phone, body)
+        except Exception:
+            log.exception("goodbye text delivery failed")
         return
     session.add(Message(user_id=None, phone=phone, direction="out", body=body, status="queued", kind="system",
                         created_at=now or utcnow()))

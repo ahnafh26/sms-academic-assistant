@@ -1,8 +1,9 @@
 """FastAPI entry point: `uvicorn app.main:app`.
 
 The texting assistant's web surface is deliberately tiny: a health check,
-the inbound-message webhook (added with Twilio), and the one-time connect
-page. There is no student dashboard; the product is the text conversation.
+the Twilio webhooks for inbound texts and delivery receipts, and the
+one-time connect page. There is no student dashboard; the product is the
+text conversation.
 """
 
 from __future__ import annotations
@@ -16,6 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from .config import get_settings
 from .web.routes import WEB_DIR
 from .web.routes import router as web_router
+from .web.twilio import router as twilio_router
+from .web.twilio import transport_from_settings
 
 SECURITY_HEADERS = {
     "Cache-Control": "no-store",              # one-time links and personal data
@@ -53,8 +56,15 @@ def create_app() -> FastAPI:
     def healthz() -> dict:
         return {"ok": True}
 
+    transport = transport_from_settings(get_settings())
+    if transport is not None:  # otherwise texts stay queued for the local fake phone
+        from . import messaging
+
+        messaging.set_transport(transport)
+
     app.mount("/static", StaticFiles(directory=WEB_DIR / "static"), name="static")
     app.include_router(web_router)
+    app.include_router(twilio_router)
     return app
 
 

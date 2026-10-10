@@ -10,5 +10,6 @@ pyyaml>=6.0
 tzdata>=2025.1          # zoneinfo has no tz database on Windows
 openai>=1.40            # OpenAI-compatible client (Gemini / Groq / Ollama)
 jinja2>=3.1
-python-multipart>=0.0.9 # form posts on the connect page
+python-multipart>=0.0.9 # form posts on the connect page and Twilio webhooks
+twilio>=9.0
 pytest>=8.0

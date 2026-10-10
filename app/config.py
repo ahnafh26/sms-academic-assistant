@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     llm_base_url: str | None = None
 
+    # real texting (Twilio). Without these, texts stay queued for the local fake phone.
+    twilio_account_sid: str | None = None
+    twilio_auth_token: str | None = None
+    twilio_from_number: str | None = None            # E.164, e.g. +18885550123
+    twilio_messaging_service_sid: str | None = None  # use instead of a from number if you set one up
+
     # background jobs (briefings, reminders, syncs): on for the deployed web process
     run_scheduler: bool = False
 
