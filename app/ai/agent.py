@@ -45,12 +45,26 @@ morning" means 9 AM. If they give no time at all, ask when. Confirm using the ex
 update_settings. Use get_settings when they ask what they'll get.
 - Syllabus and grade questions aren't available yet. Say they're coming soon.
 - Style: like a text message. Short, friendly, plain text. Use "•" bullets for lists, no markdown \
-headings or bold. Keep it to a few lines unless you're listing items. Use emoji sparingly (✅ for \
-confirmations is fine)."""
+headings or bold. Keep it to a few lines unless you're listing items. Never use emoji: one emoji \
+makes the whole text cost about twice as much to send."""
 
 FALLBACK_REPLY = ("Sorry, I couldn't double-check that against your calendar. "
                   "Try asking it another way, like \"what's due this week\".")
 STUCK_REPLY = "Sorry, I got stuck on that one. Try rephrasing?"
+
+# --- emoji -----------------------------------------------------------------------
+
+# a single emoji switches the whole SMS to UCS-2 (70 chars a segment instead of 160), roughly
+# doubling its cost; the prompt forbids them and this catches any the model adds anyway
+_EMOJI = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u200D]+")
+
+
+def strip_emoji(text: str) -> str:
+    text = _EMOJI.sub("", text)
+    text = re.sub(r"[ \t]+([.,!?])", r"\1", text)   # "Done ✅." -> "Done."
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    return "\n".join(line.rstrip() for line in text.splitlines()).strip()
+
 
 # --- grounding -----------------------------------------------------------------
 
@@ -135,7 +149,7 @@ class Agent:
                                  "content": json.dumps(output, ensure_ascii=False)})
                 continue
 
-            reply = (result.content or "").strip()
+            reply = strip_emoji(result.content or "")
             # tool output is the evidence; the student's own words may be echoed ("before Friday")
             evidence = [system["content"]] + [m["content"] for t in [*self.turns, turn] for m in t
                                               if m["role"] == "tool" or (m["role"] == "user" and m["content"])]

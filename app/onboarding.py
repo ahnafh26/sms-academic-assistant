@@ -31,7 +31,7 @@ def _terms_url() -> str:
 
 def welcome() -> list[str]:
     return [
-        "Hey 👋 I'm your school assistant. Connect your courses once, then text me anything: "
+        "Hey! I'm your school assistant. Connect your courses once, then text me anything: "
         "what's due, what's next, \"I finished econ\".",
         f"Reply YES to agree to the terms ({_terms_url()}) and get started. Text STOP anytime to opt out.",
     ]

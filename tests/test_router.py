@@ -32,7 +32,7 @@ def test_stop_then_silence_then_start(session):
     user = session.query(User).one()
     assert user.status == "opted_out" and user.opted_out_at == NOW
     assert inbound(session, "what's due") == []  # no texts to opted-out numbers
-    assert inbound(session, "START") == ["Welcome back 👋 You're subscribed again."]
+    assert inbound(session, "START") == ["Welcome back! You're subscribed again."]
     assert user.status == "onboarding"
 
 

@@ -58,7 +58,7 @@ def test_full_signup_by_text(session, fake_feed):
     conn = session.query(LmsConnection).one()
     assert decrypt(conn.encrypted_secret) == FEED and conn.last_success_at == NOW
     last = session.query(Message).filter_by(direction="out").order_by(Message.created_at.desc()).first()
-    assert last.body.startswith("Connected ✅ I found 2 courses and 37 upcoming deadlines.")
+    assert last.body.startswith("Connected! I found 2 courses and 37 upcoming deadlines.")
     assert "Next up:" in last.body
 
     assert text(session, "what's due today") == ["brain: what's due today"]

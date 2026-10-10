@@ -3,7 +3,7 @@
 Starts the web server (for the connect link) and opens a terminal "phone"
 that texts the assistant through the exact same code path real texts
 will use: router -> sign-up / brain -> outbox. Texts the assistant sends
-later (like "Connected ✅" after you finish the web page) pop in on their own.
+later (like "Connected!" after you finish the web page) pop in on their own.
 
 The scheduler runs here too, so reminders, due-soon texts and the morning
 briefing arrive like they would on a real phone. /briefing shows today's

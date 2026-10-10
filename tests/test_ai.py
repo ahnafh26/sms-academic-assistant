@@ -91,3 +91,12 @@ def test_model_from_settings():
     assert model_from_settings(s(llm_api_key="paste-your-key-here")) is None
     assert model_from_settings(s(llm_api_key="k")).model == "gemini-flash-lite-latest"
     assert model_from_settings(s(llm_provider="ollama")).model == "qwen2.5:7b"
+
+
+def test_emoji_are_stripped_from_replies(session, student):
+    from app.ai.agent import strip_emoji
+
+    assert strip_emoji("Nice work \u2705! You're all set \U0001F389\U0001F44D") == "Nice work! You're all set"
+    assert strip_emoji("Done \u2764\ufe0f.\n\u2022 BU111 Quiz 5 \U0001F4DA") == "Done.\n\u2022 BU111 Quiz 5"
+    agent = Agent(Script([AssistantTurn("Got it \U0001F44D")]), toolbox(session, student), TZ, now_fn=lambda: NOW)
+    assert agent.reply("thanks") == "Got it"

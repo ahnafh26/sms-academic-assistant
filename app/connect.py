@@ -24,7 +24,7 @@ from .sync import SyncResult, run_sync
 class ConnectOutcome:
     ok: bool
     problem: str | None = None   # student-facing explanation when not ok
-    summary: str | None = None   # the "Connected ✅" text that was sent
+    summary: str | None = None   # the "Connected!" text that was sent
 
 
 def connect_calendar(session: Session, user: User, url: str, *, fetcher=None,
@@ -66,7 +66,7 @@ def connected_message(session: Session, user: User, result: SyncResult, now: dat
     courses = list(session.scalars(select(Course).where(Course.user_id == user.id)))
     quiet = sorted(c.code or c.label for c in courses if not c.has_calendar_items)
 
-    lines = [f"Connected ✅ I found {len(courses)} course{'s' if len(courses) != 1 else ''} and "
+    lines = [f"Connected! I found {len(courses)} course{'s' if len(courses) != 1 else ''} and "
              f"{len(upcoming)} upcoming deadline{'s' if len(upcoming) != 1 else ''}."]
     if upcoming:
         nxt = upcoming[0]

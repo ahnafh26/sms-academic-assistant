@@ -65,7 +65,7 @@ def test_delete_code_expires(session):
 def test_connected_student_can_get_a_new_link_or_paste_one(session):
     connected_student(session)
     assert "Tap this link to connect MyLearningSpace" in text(session, "link")[0]
-    assert text(session, f"new one: {FEED}") == []          # reconnects; "Connected ✅" is sent by the connect step
+    assert text(session, f"new one: {FEED}") == []          # reconnects; "Connected!" is sent by the connect step
     conns = session.query(LmsConnection).order_by(LmsConnection.created_at).all()
     assert [c.status for c in conns] == ["revoked", "active"]
     assert text(session, "what's due") == ["brain: what's due"]

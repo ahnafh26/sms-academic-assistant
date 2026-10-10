@@ -49,11 +49,11 @@ def test_bad_link_shows_the_reason(setup):
 def test_successful_connect_texts_the_student_and_burns_the_link(setup):
     client, token, s = setup
     r = client.post(f"/s/{token}", data={"feed_url": FEED})
-    assert r.status_code == 200 and "You're set" in r.text and "Connected ✅" in r.text
+    assert r.status_code == 200 and "You're set" in r.text and "Connected!" in r.text
     s.expire_all()
     user = s.query(User).one()
     assert user.onboarding_step == "done" and user.status == "active"
-    assert s.query(Message).filter_by(direction="out").one().body.startswith("Connected ✅")
+    assert s.query(Message).filter_by(direction="out").one().body.startswith("Connected!")
     assert s.query(SetupToken).one().used_at is not None
     again = client.get(f"/s/{token}")
     assert again.status_code == 410 and "already used" in again.text

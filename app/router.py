@@ -36,7 +36,7 @@ HELP_TEXT = ("{name}: I track your Brightspace deadlines by text. Ask things lik
              "\"remind me at 8 to start the essay\". Text LINK to reconnect your calendar, DELETE MY ACCOUNT to "
              "erase your data, STOP to unsubscribe. Msg & data rates may apply.")
 STOP_TEXT = "You're unsubscribed and won't get more texts. Text START anytime to come back."
-START_TEXT = "Welcome back 👋 You're subscribed again."
+START_TEXT = "Welcome back! You're subscribed again."
 
 
 def handle_inbound(

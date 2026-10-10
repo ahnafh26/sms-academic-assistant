@@ -106,7 +106,7 @@ class Script:
 def test_brain_sees_texts_it_sent_on_its_own(session, student):
     send_text(session, student, "Heads up: EN101 Essay is due at 11:59 PM.", kind="due_soon",
               now=NOW - timedelta(hours=1))
-    model = Script([AssistantTurn("Nice work ✅")])
+    model = Script([AssistantTurn("Nice work!")])
     brain.set_model(model)
     try:
         brain.answer(session, student, "done", now=NOW)
