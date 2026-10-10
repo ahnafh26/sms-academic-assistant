@@ -50,6 +50,17 @@ def _start_server(port: int) -> None:
     raise SystemExit(f"web server didn't start on port {port} (already in use? try --port 8001)")
 
 
+def outdated_tables() -> list[str]:
+    """Tables in the local SQLite file that are missing columns the models now have."""
+    from sqlalchemy import inspect
+
+    from .db import Base, session_factory
+
+    inspector = inspect(session_factory().kw["bind"])
+    return [table.name for table in Base.metadata.sorted_tables
+            if {c.name for c in table.columns} - {c["name"] for c in inspector.get_columns(table.name)}]
+
+
 def deliver_pending(phone: str, out=print) -> int:
     """Print texts queued for this number (the fake phone is the delivery transport)."""
     from .db import session_scope
@@ -128,6 +139,10 @@ def main(argv: list[str] | None = None) -> int:
 
     phone = normalize_phone(args.phone)
     configure()
+    stale = outdated_tables()
+    if stale:
+        raise SystemExit(f"Your local database is from an older version (missing columns in {', '.join(stale)}). "
+                         f"Delete data/app.db (local test data only) and run this again.")
     _start_server(args.port)
     brain = "on" if current_model() else "off (paste a free Gemini key into prototype/.env or .env)"
     print(f"Fake phone {phone} · connect pages at http://localhost:{args.port} · AI brain: {brain}")

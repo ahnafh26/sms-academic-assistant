@@ -36,3 +36,13 @@ def test_briefing_command_needs_a_finished_signup(session_factory):
     assert dev.briefing_now(PHONE) is True
     dev.deliver_pending(PHONE, out=lines.append)
     assert "Good morning!" in lines[0]
+
+
+def test_detects_a_local_database_from_an_older_version(session_factory):
+    from sqlalchemy import text
+
+    assert dev.outdated_tables() == []
+    with session_factory() as s:
+        s.execute(text("ALTER TABLE users DROP COLUMN briefing_time"))
+        s.commit()
+    assert dev.outdated_tables() == ["users"]
