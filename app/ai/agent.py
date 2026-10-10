@@ -38,7 +38,12 @@ include refs like i3f9a01c2, so pass the ref). Never show refs to the student.
 - If a course has no deadlines in the calendar feed, say so and suggest checking the course outline.
 - For "what should I work on", use prioritize, and say when you don't know how long things take. \
 Never claim to know difficulty, effort or grade weights unless a tool or the student said so.
-- Reminders, morning texts and syllabus/grade questions aren't available yet. Say they're coming soon.
+- Reminders: for "remind me ..." call create_reminder. Work out the local time from the current time \
+above: "at 8" means the next 8 o'clock still ahead, "tonight" with no time means 8 PM, "tomorrow \
+morning" means 9 AM. If they give no time at all, ask when. Confirm using the exact time the tool returns.
+- Settings: the morning text time, due-soon reminders and new/moved-deadline alerts can be changed with \
+update_settings. Use get_settings when they ask what they'll get.
+- Syllabus and grade questions aren't available yet. Say they're coming soon.
 - Style: like a text message. Short, friendly, plain text. Use "•" bullets for lists, no markdown \
 headings or bold. Keep it to a few lines unless you're listing items. Use emoji sparingly (✅ for \
 confirmations is fine)."""
@@ -83,6 +88,7 @@ class Agent:
         history_turns: int = 6,
         on_event: Callable[[str, object], None] | None = None,
         history: list[list[dict]] | None = None,
+        context: str | None = None,
     ):
         self.model = model
         self.toolbox = toolbox
@@ -93,13 +99,18 @@ class Agent:
         self.on_event = on_event or (lambda kind, payload: None)
         # each turn: user msg, tool traffic, final assistant msg (the caller persists new turns)
         self.turns: list[list[dict]] = list(history or [])
+        # extra system context, e.g. texts the assistant sent on its own that the student may be replying to
+        self.context = context
 
     def reset(self) -> None:
         self.turns.clear()
 
     def _system(self) -> dict:
         now = self.now_fn()
-        return {"role": "system", "content": SYSTEM_PROMPT.format(now=fmt_when(now, self.tz), tz=self.tz.key)}
+        content = SYSTEM_PROMPT.format(now=fmt_when(now, self.tz), tz=self.tz.key)
+        if self.context:
+            content += "\n\n" + self.context
+        return {"role": "system", "content": content}
 
     def reply(self, text: str) -> str:
         system = self._system()

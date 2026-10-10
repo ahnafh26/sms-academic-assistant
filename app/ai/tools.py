@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
@@ -71,6 +71,7 @@ class Toolbox:
         self._last_refresh: datetime | None = None
         self._register_query_tools()
         self._register_action_tools()
+        self._register_reminder_tools()
 
     # ------------------------------------------------------------ plumbing
 
@@ -351,10 +352,12 @@ class Toolbox:
             if self.refresh_fn is None:
                 raise ToolError("refresh isn't available in this setup")
             now = self.now_fn()
-            if self._last_refresh and now - self._last_refresh < self.REFRESH_COOLDOWN:
-                wait = self.REFRESH_COOLDOWN - (now - self._last_refresh)
+            # the last sync of any kind (background syncs count), so the limit holds across texts
+            last = max(filter(None, (self._last_refresh, self.store.last_sync_at)), default=None)
+            if last and now - last < self.REFRESH_COOLDOWN:
+                wait = self.REFRESH_COOLDOWN - (now - last)
                 return {"refreshed": False,
-                        "reason": f"synced {fmt_relative(self._last_refresh, now)}; try again in "
+                        "reason": f"synced {fmt_relative(last, now)}; try again in "
                                   f"{max(1, round(wait.total_seconds() / 60))} min"}
             before = {i.id: i.when for i in self.store.items}
             summary = self.refresh_fn()
@@ -367,6 +370,155 @@ class Toolbox:
                     "new_items": [self.view(i, now) for i in new],
                     "moved_items": [self.view(i, now) for i in moved],
                     "removed_count": len(set(before) - set(after))}
+
+    # ------------------------------------------------------------ reminders and settings
+
+    MAX_REMINDER_AHEAD = timedelta(days=180)
+
+    def reminder_ref(self, reminder) -> str:
+        return "r" + reminder.id.replace("-", "")[:8]
+
+    def _reminder_view(self, reminder, now: datetime) -> dict:
+        v: dict[str, Any] = {"ref": self.reminder_ref(reminder), "at": fmt_when(reminder.fire_at, self.tz),
+                             "when": fmt_relative(reminder.fire_at, now)}
+        if reminder.note:
+            v["note"] = reminder.note
+        item = self.store.get(reminder.item_id) if reminder.item_id else None
+        if item:
+            v["about"] = f"{item.course} {item.title}"
+        return v
+
+    def _parse_local(self, value: str, now: datetime) -> datetime:
+        try:
+            parsed = datetime.fromisoformat(value.strip().replace(" ", "T"))
+        except (AttributeError, ValueError):
+            raise ToolError("time must be local YYYY-MM-DDTHH:MM, e.g. 2026-10-05T20:00") from None
+        fire_at = parsed.replace(tzinfo=self.tz) if parsed.tzinfo is None else parsed
+        if fire_at <= now:
+            raise ToolError(f"{fmt_when(fire_at, self.tz)} has already passed (it's {fmt_when(now, self.tz)} now). "
+                            "If they meant the next one (e.g. PM, or tomorrow), use that time instead.")
+        if fire_at - now > self.MAX_REMINDER_AHEAD:
+            raise ToolError("reminders can be at most 6 months ahead")
+        return fire_at
+
+    @staticmethod
+    def _clock(hhmm: str) -> str:
+        hour, minute = (int(x) for x in hhmm.split(":"))
+        return f"{hour % 12 or 12}:{minute:02d} {'AM' if hour < 12 else 'PM'}"
+
+    def _settings_view(self) -> dict:
+        user = self.store.user
+        minutes = user.due_reminder_minutes
+        if not minutes:
+            due = "off"
+        elif minutes % 1440 == 0:
+            due = f"{minutes // 1440} day{'s' if minutes != 1440 else ''} before each deadline"
+        else:
+            due = f"{minutes / 60:g} hour{'s' if minutes != 60 else ''} before each deadline"
+        return {
+            "morning_text": f"on, at {self._clock(user.briefing_time)}" if user.briefing_enabled else "off",
+            "due_soon_reminders": due,
+            "new_and_moved_deadline_alerts": "on" if user.alerts_enabled else "off",
+            "quiet_hours": "10:00 PM to 8:00 AM (no automatic texts then, except the morning text and "
+                           "reminders they asked for)",
+        }
+
+    def _register_reminder_tools(self) -> None:
+        @self._tool(
+            "create_reminder",
+            "Set a reminder text ('remind me at 8 to start the essay', 'remind me about that tomorrow "
+            "morning', 'remind me in 20 min'). Give either `at` or `in_minutes`.",
+            {
+                "at": {"type": "string",
+                       "description": "Local time YYYY-MM-DDTHH:MM, worked out from the current local time"},
+                "in_minutes": {"type": "integer", "description": "Minutes from now, for 'in 20 min'"},
+                "item": {"type": "string",
+                         "description": "Optional item ref or the student's words, if it's about a deadline"},
+                "note": {"type": "string", "description": "Short note in the student's words, e.g. 'start the essay'"},
+            },
+        )
+        def create_reminder(at: str | None = None, in_minutes: int | None = None, item: str | None = None,
+                            note: str | None = None) -> dict:
+            now = self.now_fn()
+            if in_minutes is not None:
+                if not 1 <= in_minutes <= 60 * 24 * 180:
+                    raise ToolError("in_minutes must be between 1 and 259200")
+                fire_at = now + timedelta(minutes=in_minutes)
+            elif at:
+                fire_at = self._parse_local(at, now)
+            else:
+                raise ToolError("no time given; ask the student when to remind them")
+            found = None
+            if item:
+                found = self._resolve(item, want_completed=False)
+                if isinstance(found, dict):
+                    return found
+            note = (note or "").strip()[:300] or None
+            if found is None and note is None:
+                raise ToolError("a reminder needs a note or an item; ask what it's for")
+            reminder = self.store.add_reminder(fire_at, found.id if found else None, note, now)
+            return {"reminder_set": self._reminder_view(reminder, now)}
+
+        @self._tool("list_reminders", "The reminders the student has set that haven't gone off yet.", {})
+        def list_reminders() -> dict:
+            now = self.now_fn()
+            return {"reminders": [self._reminder_view(r, now) for r in self.store.active_reminders()]}
+
+        @self._tool(
+            "cancel_reminder",
+            "Cancel a reminder by its ref (from list_reminders or create_reminder), or 'all'.",
+            {"reminder": {"type": "string", "description": "Reminder ref like 'r1a2b3c4d', or 'all'"}},
+            ["reminder"],
+        )
+        def cancel_reminder(reminder: str) -> dict:
+            now = self.now_fn()
+            active = self.store.active_reminders()
+            if reminder.strip().lower() == "all":
+                chosen = active
+            else:
+                chosen = [r for r in active if self.reminder_ref(r) == reminder.strip().lower()]
+                if not chosen:
+                    raise ToolError(f"no active reminder '{reminder}'; call list_reminders first")
+            for r in chosen:
+                self.store.cancel_reminder(r.id)
+            return {"cancelled": [self._reminder_view(r, now) for r in chosen]}
+
+        @self._tool("get_settings", "The student's text settings: morning text, due-soon reminders, alerts.", {})
+        def get_settings() -> dict:
+            return {"settings": self._settings_view()}
+
+        @self._tool(
+            "update_settings",
+            "Change text settings ('move my morning text to 7:30', 'stop the morning texts', 'remind me a day "
+            "before things are due', 'turn off due-soon reminders', 'stop telling me about new deadlines').",
+            {
+                "morning_text_time": {"type": "string", "description": "24h local HH:MM, e.g. '07:30'"},
+                "morning_text_on": {"type": "boolean"},
+                "due_soon_hours_before": {"type": "number", "description": "Hours before each deadline; 0 = off"},
+                "alerts_on": {"type": "boolean", "description": "Texts about new or moved deadlines"},
+            },
+        )
+        def update_settings(morning_text_time: str | None = None, morning_text_on: bool | None = None,
+                            due_soon_hours_before: float | None = None, alerts_on: bool | None = None) -> dict:
+            changes: dict[str, Any] = {}
+            if morning_text_time is not None:
+                try:
+                    clock = time.fromisoformat(morning_text_time.strip())
+                except ValueError:
+                    raise ToolError("morning_text_time must be HH:MM in 24h time, e.g. '07:30'") from None
+                changes["briefing_time"], changes["briefing_enabled"] = f"{clock:%H:%M}", True
+            if morning_text_on is not None:
+                changes["briefing_enabled"] = morning_text_on
+            if due_soon_hours_before is not None:
+                if not 0 <= due_soon_hours_before <= 24 * 7:
+                    raise ToolError("due_soon_hours_before must be between 0 and 168")
+                changes["due_reminder_minutes"] = round(due_soon_hours_before * 60) or None
+            if alerts_on is not None:
+                changes["alerts_enabled"] = alerts_on
+            if not changes:
+                raise ToolError("nothing to change")
+            self.store.update_settings(**changes)
+            return {"updated": True, "settings": self._settings_view()}
 
     # ------------------------------------------------------------ matching
 

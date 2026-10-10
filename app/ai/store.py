@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..models import AcademicItem, Course, LmsConnection
+from ..models import AcademicItem, Course, LmsConnection, Reminder, User
 
 
 @dataclass
@@ -43,6 +43,7 @@ class Store:
         self.items: list[Item] = []
         self.quiet_courses: list[tuple[str, str]] = []
         self.data_as_of: datetime | None = None
+        self.last_sync_at: datetime | None = None  # last attempt, successful or not
 
     def load(self) -> None:
         rows = self.session.scalars(select(AcademicItem).where(AcademicItem.user_id == self.user_id))
@@ -54,6 +55,8 @@ class Store:
         self.quiet_courses = sorted((c.institution, c.code or c.label) for c in courses if not c.has_calendar_items)
         self.data_as_of = self.session.scalar(
             select(func.max(LmsConnection.last_success_at)).where(LmsConnection.user_id == self.user_id))
+        self.last_sync_at = self.session.scalar(
+            select(func.max(LmsConnection.last_sync_at)).where(LmsConnection.user_id == self.user_id))
 
     @staticmethod
     def _item(r: AcademicItem) -> Item:
@@ -80,6 +83,10 @@ class Store:
     def set_completed(self, item_id: str, done: bool, now: datetime) -> Item:
         row = self._row(item_id)
         row.completed_at = now if done else None
+        if done:  # nothing left to remind about
+            for reminder in self.active_reminders():
+                if reminder.item_id == item_id:
+                    reminder.status = "cancelled"
         self.session.flush()
         item = self.get(item_id)
         if item:
@@ -94,3 +101,35 @@ class Store:
         if item:
             item.estimate_minutes = minutes
         return item or self._item(row)
+
+    # ------------------------------------------------------------ reminders and settings
+
+    @property
+    def user(self) -> User:
+        return self.session.get(User, self.user_id)
+
+    def active_reminders(self) -> list[Reminder]:
+        return list(self.session.scalars(select(Reminder).where(
+            Reminder.user_id == self.user_id, Reminder.status == "active").order_by(Reminder.fire_at)))
+
+    def add_reminder(self, fire_at: datetime, item_id: str | None, note: str | None, now: datetime) -> Reminder:
+        if item_id is not None:
+            self._row(item_id)  # must be this student's item
+        reminder = Reminder(user_id=self.user_id, item_id=item_id, note=note, fire_at=fire_at, created_at=now)
+        self.session.add(reminder)
+        self.session.flush()
+        return reminder
+
+    def cancel_reminder(self, reminder_id: str) -> None:
+        reminder = self.session.get(Reminder, reminder_id)
+        if reminder is None or reminder.user_id != self.user_id:
+            raise KeyError(reminder_id)
+        reminder.status = "cancelled"
+        self.session.flush()
+
+    def update_settings(self, **changes) -> User:
+        user = self.user
+        for key, value in changes.items():
+            setattr(user, key, value)
+        self.session.flush()
+        return user

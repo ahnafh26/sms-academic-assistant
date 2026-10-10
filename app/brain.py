@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
 from zoneinfo import ZoneInfo
 
@@ -16,11 +16,12 @@ from .ai.store import Store
 from .ai.tools import Toolbox
 from .config import get_settings
 from .db import utcnow
-from .models import ConversationTurn, LmsConnection, User
+from .models import ConversationTurn, LmsConnection, Message, User
 from .sync import run_sync
 
 log = logging.getLogger(__name__)
 HISTORY_TURNS = 6
+RECENT_PROACTIVE = timedelta(hours=24)
 NOT_CONFIGURED = "I'm connected to your courses, but my brain isn't switched on yet (no AI key set up). Try again soon!"
 LLM_DOWN = "Sorry, I'm having trouble thinking right now. Try again in a minute."
 
@@ -55,6 +56,20 @@ def _refresh(session: Session, user: User):
     return refresh
 
 
+def _recent_proactive(session: Session, user: User, now: datetime, since: datetime | None) -> str | None:
+    """Texts the assistant sent on its own since the last conversation turn (a reply like "done"
+    or "remind me later about that" usually refers to one of them)."""
+    start = max(filter(None, (since, now - RECENT_PROACTIVE)))
+    rows = list(session.scalars(select(Message).where(
+        Message.user_id == user.id, Message.direction == "out", Message.created_at > start,
+        Message.kind.in_(("briefing", "due_soon", "alert", "reminder"))).order_by(Message.created_at)))[-4:]
+    if not rows:
+        return None
+    sent = "\n---\n".join(m.body for m in rows)
+    return ("Texts you sent the student on your own since their last message (they may be replying to "
+            "these; use tools to find the items before acting):\n" + sent)
+
+
 def answer(session: Session, user: User, text: str, *, now: datetime | None = None) -> str:
     model = current_model()
     if model is None:
@@ -68,7 +83,8 @@ def answer(session: Session, user: User, text: str, *, now: datetime | None = No
     toolbox = Toolbox(store, tz, now_fn=now_fn, refresh_fn=_refresh(session, user))
     past = list(session.scalars(select(ConversationTurn).where(ConversationTurn.user_id == user.id)
                                 .order_by(ConversationTurn.created_at.desc()).limit(HISTORY_TURNS)))
-    agent = Agent(model, toolbox, tz, now_fn=now_fn, history=[t.messages for t in reversed(past)])
+    context = _recent_proactive(session, user, now_fn(), past[0].created_at if past else None)
+    agent = Agent(model, toolbox, tz, now_fn=now_fn, history=[t.messages for t in reversed(past)], context=context)
     try:
         reply = agent.reply(text)
     except LLMError as exc:
