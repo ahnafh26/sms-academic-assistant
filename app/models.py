@@ -8,9 +8,9 @@ channel; high-risk actions will get extra confirmation later.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base, UTCDateTime, utcnow
@@ -33,6 +33,12 @@ class User(Base):
     consent_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     terms_version: Mapped[str | None] = mapped_column(String(40))
     opted_out_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    # texts the assistant sends on its own (the student changes these by text)
+    briefing_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    briefing_time: Mapped[str] = mapped_column(String(5), default="08:00")   # local HH:MM
+    last_briefing_date: Mapped[date | None] = mapped_column(Date)            # local date of the last one sent
+    due_reminder_minutes: Mapped[int | None] = mapped_column(Integer, default=180)  # None = off
+    alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=True)      # new / moved deadlines
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 
@@ -129,8 +135,26 @@ class Message(Base):
     direction: Mapped[str] = mapped_column(String(3))  # in | out
     body: Mapped[str] = mapped_column(Text)
     provider_sid: Mapped[str | None] = mapped_column(String(64), unique=True)  # Twilio MessageSid (dedupe)
-    status: Mapped[str] = mapped_column(String(20), default="received")  # received | queued | sent | failed
+    status: Mapped[str] = mapped_column(String(20), default="received")
+    # received | queued | sent | delivered | failed
+    kind: Mapped[str] = mapped_column(String(20), default="reply")
+    # reply | briefing | due_soon | alert | reminder | system
+    dedupe_key: Mapped[str | None] = mapped_column(String(160), unique=True)  # one text per key, ever
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, index=True)
+
+
+class Reminder(Base):
+    """A reminder the student asked for ("remind me at 8 to start the essay")."""
+
+    __tablename__ = "reminders"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    item_id: Mapped[str | None] = mapped_column(ForeignKey("academic_items.id", ondelete="SET NULL"))
+    note: Mapped[str | None] = mapped_column(String(300))
+    fire_at: Mapped[datetime] = mapped_column(UTCDateTime(), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="active")  # active | sent | cancelled
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
 class ConversationTurn(Base):
@@ -151,7 +175,7 @@ class SetupToken(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    purpose: Mapped[str] = mapped_column(String(30))  # connect_calendar
+    purpose: Mapped[str] = mapped_column(String(30))  # connect_calendar | delete_account
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     expires_at: Mapped[datetime] = mapped_column(UTCDateTime())
     used_at: Mapped[datetime | None] = mapped_column(UTCDateTime())

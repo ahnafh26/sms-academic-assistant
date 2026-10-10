@@ -5,13 +5,21 @@ status "queued"; a transport then delivers it and marks it "sent". Locally,
 the fake phone is the transport (it reads queued rows). With Twilio, the
 webhook/worker will deliver through the Twilio API. Opted-out numbers
 are never texted.
+
+Texts the assistant sends on its own (briefings, due-soon reminders,
+change alerts) are "proactive": they wait out quiet hours and are capped
+per day. Reminders the student asked for are exempt from both. A
+`dedupe_key` makes any text at-most-once, so a retried or overlapping
+scheduler tick can never send the same reminder twice.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .db import utcnow
@@ -20,6 +28,10 @@ from .models import Message, User
 Transport = Callable[[str, str], str | None]  # (phone, body) -> provider message id
 _transport: Transport | None = None
 
+PROACTIVE_KINDS = {"briefing", "due_soon", "alert"}
+QUIET_START, QUIET_END = time(22, 0), time(8, 0)
+DAILY_PROACTIVE_CAP = 6
+
 
 def set_transport(transport: Transport | None) -> None:
     """Deliver immediately through this function (e.g. Twilio). None = leave queued for the fake phone."""
@@ -27,10 +39,37 @@ def set_transport(transport: Transport | None) -> None:
     _transport = transport
 
 
-def send_text(session: Session, user: User, body: str) -> Message | None:
+def in_quiet_hours(user: User, now: datetime) -> bool:
+    local = now.astimezone(ZoneInfo(user.timezone)).time()
+    return local >= QUIET_START or local < QUIET_END
+
+
+def proactive_sent_today(session: Session, user: User, now: datetime) -> int:
+    tz = ZoneInfo(user.timezone)
+    midnight = datetime.combine(now.astimezone(tz).date(), time(0), tz)
+    return session.scalar(select(func.count(Message.id)).where(
+        Message.user_id == user.id, Message.direction == "out", Message.kind.in_(PROACTIVE_KINDS),
+        Message.created_at >= midnight, Message.created_at < midnight + timedelta(days=1))) or 0
+
+
+def proactive_allowed(session: Session, user: User, now: datetime) -> bool:
+    """Whether the assistant may text this student unprompted right now."""
+    return (user.status == "active" and not in_quiet_hours(user, now)
+            and proactive_sent_today(session, user, now) < DAILY_PROACTIVE_CAP)
+
+
+def send_text(session: Session, user: User, body: str, *, kind: str = "reply", dedupe_key: str | None = None,
+              now: datetime | None = None) -> Message | None:
+    """Queue (and, with a transport, deliver) one text. None when it must not be sent."""
+    now = now or utcnow()
     if user.status == "opted_out":
         return None
-    msg = Message(user_id=user.id, phone=user.phone, direction="out", body=body, status="queued", created_at=utcnow())
+    if dedupe_key and session.scalar(select(Message.id).where(Message.dedupe_key == dedupe_key)):
+        return None
+    if kind in PROACTIVE_KINDS and not proactive_allowed(session, user, now):
+        return None
+    msg = Message(user_id=user.id, phone=user.phone, direction="out", body=body, status="queued", kind=kind,
+                  dedupe_key=dedupe_key, created_at=now)
     session.add(msg)
     session.flush()
     if _transport is not None:
