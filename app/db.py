@@ -46,8 +46,16 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def normalize_url(url: str) -> str:
+    """Hosts like Railway hand out postgres://...; SQLAlchemy wants a driver named (psycopg 3)."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
 def make_engine(url: str | None = None) -> Engine:
-    url = url or get_settings().database_url
+    url = normalize_url(url or get_settings().database_url)
     if url.startswith("sqlite"):
         if url in ("sqlite://", "sqlite:///:memory:"):
             return create_engine(url, connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -68,8 +76,10 @@ def configure(url: str | None = None) -> sessionmaker[Session]:
     _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
     from . import models  # noqa: F401  (register tables)
 
-    # MVP: create tables directly. Alembic migrations come with the first deploy.
-    Base.metadata.create_all(_engine)
+    if _engine.dialect.name == "sqlite":
+        # local dev and tests: create tables directly (delete data/app.db after a model change).
+        # Postgres is only ever changed by migrations: `alembic upgrade head` runs before the app starts.
+        Base.metadata.create_all(_engine)
     return _SessionLocal
 
 

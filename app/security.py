@@ -31,7 +31,12 @@ DEV_KEY_FILE = DATA_DIR / "dev_encryption.key"
 
 @lru_cache
 def _fernet() -> Fernet:
-    key = get_settings().encryption_key
+    settings = get_settings()
+    key = settings.encryption_key
+    if not key and not settings.database_url.startswith("sqlite"):
+        # a generated key would live on the server's throwaway disk: every calendar link
+        # would become unreadable at the next deploy
+        raise RuntimeError("ENCRYPTION_KEY must be set when using a real database")
     if not key:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         if not DEV_KEY_FILE.exists():
