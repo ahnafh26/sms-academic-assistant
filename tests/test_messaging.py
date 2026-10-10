@@ -19,12 +19,14 @@ def test_dedupe_key_sends_once(session):
     assert session.query(Message).count() == 1
 
 
-def test_quiet_hours_hold_proactive_texts_but_not_replies_or_asked_for_reminders(session):
+def test_quiet_hours_hold_alerts_but_not_replies_briefings_or_asked_for_reminders(session):
     u = _student(session)
     night = NOW.replace(hour=23)  # 11 PM Toronto
     assert in_quiet_hours(u, night) and in_quiet_hours(u, NOW.replace(hour=7, minute=59))
     assert not in_quiet_hours(u, NOW.replace(hour=8))
-    assert send_text(session, u, "briefing", kind="briefing", now=night) is None
+    assert send_text(session, u, "alert", kind="alert", now=night) is None
+    assert send_text(session, u, "due soon", kind="due_soon", now=night) is None
+    assert send_text(session, u, "briefing at the time they picked", kind="briefing", now=night)
     assert send_text(session, u, "reply", now=night)
     assert send_text(session, u, "you asked", kind="reminder", now=night)
 

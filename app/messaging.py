@@ -7,8 +7,9 @@ webhook/worker will deliver through the Twilio API. Opted-out numbers
 are never texted.
 
 Texts the assistant sends on its own (briefings, due-soon reminders,
-change alerts) are "proactive": they wait out quiet hours and are capped
-per day. Reminders the student asked for are exempt from both. A
+change alerts) are "proactive" and capped per day; due-soon reminders and
+change alerts also wait out quiet hours (the briefing goes out at the time
+the student picked). Reminders the student asked for are exempt from both. A
 `dedupe_key` makes any text at-most-once, so a retried or overlapping
 scheduler tick can never send the same reminder twice.
 """
@@ -29,6 +30,7 @@ Transport = Callable[[str, str], str | None]  # (phone, body) -> provider messag
 _transport: Transport | None = None
 
 PROACTIVE_KINDS = {"briefing", "due_soon", "alert"}
+QUIET_KINDS = {"due_soon", "alert"}
 QUIET_START, QUIET_END = time(22, 0), time(8, 0)
 DAILY_PROACTIVE_CAP = 6
 
@@ -52,9 +54,9 @@ def proactive_sent_today(session: Session, user: User, now: datetime) -> int:
         Message.created_at >= midnight, Message.created_at < midnight + timedelta(days=1))) or 0
 
 
-def proactive_allowed(session: Session, user: User, now: datetime) -> bool:
+def proactive_allowed(session: Session, user: User, now: datetime, kind: str = "alert") -> bool:
     """Whether the assistant may text this student unprompted right now."""
-    return (user.status == "active" and not in_quiet_hours(user, now)
+    return (user.status == "active" and not (kind in QUIET_KINDS and in_quiet_hours(user, now))
             and proactive_sent_today(session, user, now) < DAILY_PROACTIVE_CAP)
 
 
@@ -66,7 +68,7 @@ def send_text(session: Session, user: User, body: str, *, kind: str = "reply", d
         return None
     if dedupe_key and session.scalar(select(Message.id).where(Message.dedupe_key == dedupe_key)):
         return None
-    if kind in PROACTIVE_KINDS and not proactive_allowed(session, user, now):
+    if kind in PROACTIVE_KINDS and not proactive_allowed(session, user, now, kind):
         return None
     msg = Message(user_id=user.id, phone=user.phone, direction="out", body=body, status="queued", kind=kind,
                   dedupe_key=dedupe_key, created_at=now)
