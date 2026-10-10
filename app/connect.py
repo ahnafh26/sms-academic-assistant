@@ -76,5 +76,7 @@ def connected_message(session: Session, user: User, result: SyncResult, now: dat
         verb = "don't" if len(quiet) > 1 else "doesn't"
         lines.append(f"Heads up: {names} {verb} post deadlines to {inst.lms_name}, so I can't see "
                      f"{'their' if len(quiet) > 1 else 'its'} due dates yet.")
-    lines.append('Text me anything, like "what\'s due this week".')
+    lines.append("Each morning at 8 I'll text you what's due, plus a heads-up 3 hours before each deadline. "
+                 "Reply anytime to change that.")
+    lines.append('Text me anything, like "what\'s due this week" or "remind me at 8 to start the essay".')
     return "\n\n".join(lines)

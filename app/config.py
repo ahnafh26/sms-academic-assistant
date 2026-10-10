@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     # product
     assistant_name: str = "Assistant"
     default_timezone: str = "America/Toronto"
-    terms_version: str = "2026-10-draft"
+    terms_version: str = "2026-10-beta"
 
 
 @lru_cache
